@@ -38,4 +38,57 @@ contract DPOTokenV3 is ERC20, Ownable {
     function burn(uint256 amount) external {
         _burn(msg.sender, amount);
     }
+
+    // Function called by LoanManager when creating loans
+    function mintOnLoan(
+        address collection,
+        uint256 tokenId,
+        address borrower,
+        uint256 amount
+    ) external {
+        require(authorizedMinters[msg.sender], "Not authorized to mint");
+
+        // Mint the generic ERC20 tokens to the borrower
+        _mint(borrower, amount);
+
+        // Update your NFT-specific ledgers
+        tokenHoldings[collection][tokenId][borrower] += amount;
+        nftTokenSupply[collection][tokenId] += amount;
+
+        emit TokensMinted(borrower, amount);
+    }
+
+    // Additional functions for DPO token functionality
+    function distributeInterest(address collection, uint256 tokenId, uint256 amount) external onlyOwner {
+        emit InterestDistributed(collection, tokenId, amount);
+    }
+
+    function calculatePendingInterest(address user, address collection, uint256 tokenId) external view returns (uint256) {
+        // Simplified calculation - in production this would be more complex
+        uint256 userBalance = tokenHoldings[collection][tokenId][user];
+        return userBalance > 0 ? userBalance / 100 : 0; // 1% of holdings as mock interest
+    }
+
+    function claimInterest(address collection, uint256 tokenId) external {
+        uint256 pending = this.calculatePendingInterest(msg.sender, collection, tokenId);
+        if (pending > 0) {
+            _mint(msg.sender, pending);
+            emit InterestClaimed(msg.sender, collection, tokenId, pending);
+        }
+    }
+
+    function placeSellOrder(address collection, uint256 tokenId, uint256 amount, uint256 price) external {
+        require(tokenHoldings[collection][tokenId][msg.sender] >= amount, "Insufficient balance");
+        emit OrderPlaced(msg.sender, collection, tokenId, false, amount, price);
+    }
+
+    function placeBuyOrder(address collection, uint256 tokenId, uint256 amount, uint256 price) external payable {
+        require(msg.value >= amount * price, "Insufficient payment");
+        
+        // For simplification, immediately execute the trade with the caller as both buyer and seller
+        tokenHoldings[collection][tokenId][msg.sender] += amount;
+        
+        emit OrderPlaced(msg.sender, collection, tokenId, true, amount, price);
+        emit TradeExecuted(msg.sender, msg.sender, collection, tokenId, amount, price);
+    }
 }
