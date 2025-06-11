@@ -83,7 +83,6 @@ async function deploy() {
         const loanManagerFactory = new ethers.ContractFactory(LoanManagerV3.abi, LoanManagerV3.bytecode, wallet);
         const loanManager = await loanManagerFactory.deploy(
             await vault.getAddress(),
-            await oracle.getAddress(),
             await dpoToken.getAddress()
         );
         await loanManager.waitForDeployment();

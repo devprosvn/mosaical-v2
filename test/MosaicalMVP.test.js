@@ -48,8 +48,7 @@ describe("Mosaical MVP Test Suite", function () {
     const nftVaultAddress = await nftVault.getAddress();
     const dpoTokenAddress = await dpoToken.getAddress();
     loanManager = await LoanManagerV3.deploy(
-      nftVaultAddress, 
-      oracleAddress,
+      nftVaultAddress,
       dpoTokenAddress
     );
     await loanManager.waitForDeployment();
