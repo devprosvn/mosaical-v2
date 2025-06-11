@@ -176,6 +176,30 @@ library Math {
             return result;
         }
     }
+
+    /**
+     * @dev Return the floor of log10(value), useful to compute number of digits.
+     */
+    function log10(uint256 value) internal pure returns (uint256) {
+        uint256 result = 0;
+        while (value >= 10) {
+            value /= 10;
+            result++;
+        }
+        return result;
+    }
+
+    /**
+     * @dev Return the floor of log256(value), useful for hex-length.
+     */
+    function log256(uint256 value) internal pure returns (uint256) {
+        uint256 result = 0;
+        while (value > 0xff) {
+            value >>= 8;
+            result++;
+        }
+        return result;
+    }
 }
 
 // @openzeppelin/contracts/token/ERC20/IERC20.sol
