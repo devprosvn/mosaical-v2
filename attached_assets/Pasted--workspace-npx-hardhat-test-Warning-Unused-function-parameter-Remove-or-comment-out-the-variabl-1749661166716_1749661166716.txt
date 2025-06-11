@@ -1,0 +1,47 @@
+~/workspace$ npx hardhat test
+Warning: Unused function parameter. Remove or comment out the variable name to silence this warning.
+   --> contracts/contracts.sol:939:48:
+    |
+939 |     function isActiveAsset(address collection, uint256 tokenId) external view returns (bool) {
+    |                                                ^^^^^^^^^^^^^^^
+
+
+Warning: Function state mutability can be restricted to view
+  --> contracts/contracts.sol:92:5:
+   |
+92 |     function _checkReentrancy() private {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Warning: Function state mutability can be restricted to pure
+    --> contracts/contracts.sol:1878:5:
+     |
+1878 |     function _executeProposalAction(Proposal memory proposal) internal {
+     |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Compiled 1 Solidity file successfully (evm target: paris).
+
+
+  Mosaical MVP Test Suite
+    Governance System
+      1) "before each" hook for "Should create proposals"
+
+
+  0 passing (1s)
+  1 failing
+
+  1) Mosaical MVP Test Suite
+       "before each" hook for "Should create proposals":
+     HardhatError: HH701: There are multiple artifacts for contract "MockGameNFT", please use a fully qualified name.
+
+Please replace MockGameNFT for one of these options wherever you are trying to read its artifact:
+
+contracts/MockGameNFT.sol:MockGameNFT
+contracts/contracts.sol:MockGameNFT
+
+      at Artifacts._getArtifactPathFromFiles (/home/runner/workspace/node_modules/hardhat/src/internal/artifacts.ts:860:13)
+      at Artifacts._getArtifactPath (/home/runner/workspace/node_modules/hardhat/src/internal/artifacts.ts:516:21)
+      at Artifacts.readArtifact (/home/runner/workspace/node_modules/hardhat/src/internal/artifacts.ts:71:26)
+      at getContractFactory (/home/runner/workspace/node_modules/@nomicfoundation/hardhat-ethers/src/internal/helpers.ts:120:22)
+      at Context.<anonymous> (/home/runner/workspace/test/MosaicalMVP.test.js:16:25)
