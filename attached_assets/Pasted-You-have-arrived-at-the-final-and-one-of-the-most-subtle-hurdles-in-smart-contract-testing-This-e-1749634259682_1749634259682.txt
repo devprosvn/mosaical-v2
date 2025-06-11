@@ -1,0 +1,57 @@
+You have arrived at the final, and one of the most subtle, hurdles in smart contract testing. This error is not due to a logical flaw in your code but rather the fundamental nature of how blockchains work.
+
+Both of your remaining tests are failing for the same reason.
+
+### The Root Cause: The Block Timestamp "Race Condition"
+
+The error `reverted with... 'Insufficient payment to cover full debt'` is happening because of a microscopic time difference between when you check the price and when you execute the transaction.
+
+1.  **The `view` Call:** In your test, you call `const totalOwed = await loanManager.getAccruedInterest(...)`. This is a read-only (`view`) call. It calculates the interest based on the timestamp of the **current block**.
+
+2.  **The Transaction:** You then immediately create a transaction by calling `await loanManager.repay({ value: totalOwed })`. This transaction gets mined in the **next block**, which, by definition, has a slightly later timestamp.
+
+3.  **The Contract's Calculation:** Inside the `repay` function, the contract recalculates the `totalOwed` using the new, later timestamp. This results in a final amount that is a few wei larger than the amount you calculated in the test.
+
+4.  **The Failure:** The contract's check `require(msg.value >= totalOwed, ...)` fails because the `msg.value` you sent is a few wei short of the final amount calculated within the transaction.
+
+Your contract logic is actually correct and robust—it correctly recalculates the debt upon payment. The test needs to account for this.
+
+---
+
+### ✅ The Final Solution
+
+Since the `repay` function correctly refunds any overpayment, the safest and most standard way to solve this in a test is to send a tiny amount *more* than what you calculated. This small buffer covers the interest accrued during the next block's creation.
+
+#### **File: `test/MosaicalMVP.test.js`**
+
+Apply the following change to the repayment logic in **both** of your failing tests:
+
+1.  `it("Should handle loan repayment correctly", ...)`
+2.  `it("Should complete full lending cycle", ...)`
+
+```javascript
+// Inside the test case (this logic applies to both failing tests):
+
+// ... (setup code, including the loan creation and time.increase)
+
+// Get the up-to-the-block amount owed to send with the transaction.
+const totalOwed = await loanManager.getAccruedInterest(borrower.address, collectionAddress, 1);
+
+// ✅ FIX: Add a small buffer to the payment to account for the interest
+// accrued in the block where the transaction is mined.
+// The contract will correctly refund this tiny overpayment.
+const amountToPay = totalOwed + ethers.parseUnits("1", "gwei"); // Adding 1 Gwei is a safe buffer
+
+// Call the repay function with the buffered amount.
+await loanManager.connect(borrower).repay(
+  collectionAddress,
+  1,
+  { value: amountToPay }
+);
+
+// ... (rest of the test assertions)
+```
+
+By adding this small buffer, your payment will always be sufficient to cover the full debt, allowing the transaction to succeed. The contract's refund logic will handle the tiny excess.
+
+With this final change, your entire test suite should now pass. Congratulations!
