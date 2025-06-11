@@ -1,6 +1,18 @@
-
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.21;
+
+// Import all required OpenZeppelin libraries
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
+
+// Flattened contracts for verification
 
 // ============================================================================
 // OpenZeppelin Contracts
@@ -696,11 +708,11 @@ abstract contract ERC721 is Context, ERC165, IERC721, IERC721Metadata, IERC721Er
 // GovernanceToken.sol
 contract GovernanceToken is ERC20, Ownable {
     constructor(string memory name, string memory symbol) ERC20(name, symbol) Ownable(msg.sender) {}
-    
+
     function mint(address to, uint256 amount) external onlyOwner {
         _mint(to, amount);
     }
-    
+
     function burn(uint256 amount) external {
         _burn(msg.sender, amount);
     }
@@ -745,19 +757,19 @@ contract MockGameNFT is ERC721, Ownable {
 // GameFiOracleV3.sol
 contract GameFiOracleV3 is Ownable, ReentrancyGuard {
     using Math for uint256;
-    
+
     struct PriceData {
         uint256 floorPrice;
         uint256 lastUpdate;
         bool isActive;
     }
-    
+
     struct UtilityData {
         uint256 score;
         uint256 lastUpdate;
         bool isActive;
     }
-    
+
     struct CollectionMetrics {
         uint256 volume24h;
         uint256 holders;
@@ -765,54 +777,54 @@ contract GameFiOracleV3 is Ownable, ReentrancyGuard {
         uint256 avgHoldTime;
         bool isGameFi;
     }
-    
+
     mapping(address => PriceData) public priceData;
     mapping(address => mapping(uint256 => UtilityData)) public utilityData;
     mapping(address => CollectionMetrics) public collectionMetrics;
     mapping(address => bool) public authorizedUpdaters;
-    
+
     uint256 public constant PRICE_STALENESS_THRESHOLD = 1 hours;
     uint256 public constant UTILITY_STALENESS_THRESHOLD = 6 hours;
     uint256 public constant MIN_UTILITY_SCORE = 1;
     uint256 public constant MAX_UTILITY_SCORE = 100;
-    
+
     event PriceUpdated(address indexed collection, uint256 newPrice, uint256 timestamp);
     event UtilityUpdated(address indexed collection, uint256 indexed tokenId, uint256 score);
     event CollectionMetricsUpdated(address indexed collection, uint256 volume, uint256 holders);
     event UpdaterAuthorized(address indexed updater, bool authorized);
-    
+
     modifier onlyAuthorized() {
         require(authorizedUpdaters[msg.sender] || msg.sender == owner(), "Not authorized");
         _;
     }
-    
+
     constructor() Ownable(msg.sender) {
         authorizedUpdaters[msg.sender] = true;
     }
-    
+
     function authorizeUpdater(address updater, bool authorized) external onlyOwner {
         authorizedUpdaters[updater] = authorized;
         emit UpdaterAuthorized(updater, authorized);
     }
-    
+
     function updateFloorPrice(address collection, uint256 price) external onlyAuthorized {
         require(price > 0, "Invalid price");
-        
+
         priceData[collection] = PriceData({
             floorPrice: price,
             lastUpdate: block.timestamp,
             isActive: true
         });
-        
+
         emit PriceUpdated(collection, price, block.timestamp);
     }
-    
+
     function batchUpdatePrices(
         address[] calldata collections,
         uint256[] calldata prices
     ) external onlyAuthorized {
         require(collections.length == prices.length, "Array length mismatch");
-        
+
         for (uint256 i = 0; i < collections.length; i++) {
             if (prices[i] > 0) {
                 priceData[collections[i]] = PriceData({
@@ -820,28 +832,28 @@ contract GameFiOracleV3 is Ownable, ReentrancyGuard {
                     lastUpdate: block.timestamp,
                     isActive: true
                 });
-                
+
                 emit PriceUpdated(collections[i], prices[i], block.timestamp);
             }
         }
     }
-    
+
     function updateUtilityScore(
         address collection,
         uint256 tokenId,
         uint256 score
     ) external onlyAuthorized {
         require(score >= MIN_UTILITY_SCORE && score <= MAX_UTILITY_SCORE, "Invalid score");
-        
+
         utilityData[collection][tokenId] = UtilityData({
             score: score,
             lastUpdate: block.timestamp,
             isActive: true
         });
-        
+
         emit UtilityUpdated(collection, tokenId, score);
     }
-    
+
     function batchUpdateUtilityScores(
         address[] calldata collections,
         uint256[] calldata tokenIds,
@@ -852,7 +864,7 @@ contract GameFiOracleV3 is Ownable, ReentrancyGuard {
             collections.length == scores.length,
             "Array length mismatch"
         );
-        
+
         for (uint256 i = 0; i < collections.length; i++) {
             if (scores[i] >= MIN_UTILITY_SCORE && scores[i] <= MAX_UTILITY_SCORE) {
                 utilityData[collections[i]][tokenIds[i]] = UtilityData({
@@ -860,12 +872,12 @@ contract GameFiOracleV3 is Ownable, ReentrancyGuard {
                     lastUpdate: block.timestamp,
                     isActive: true
                 });
-                
+
                 emit UtilityUpdated(collections[i], tokenIds[i], scores[i]);
             }
         }
     }
-    
+
     function updateCollectionMetrics(
         address collection,
         uint256 volume24h,
@@ -881,22 +893,22 @@ contract GameFiOracleV3 is Ownable, ReentrancyGuard {
             avgHoldTime: avgHoldTime,
             isGameFi: isGameFi
         });
-        
+
         emit CollectionMetricsUpdated(collection, volume24h, holders);
     }
-    
+
     function getFloorPrice(address collection) external view returns (uint256) {
         PriceData memory data = priceData[collection];
-        
+
         if (!data.isActive) return 0;
         if (block.timestamp - data.lastUpdate > PRICE_STALENESS_THRESHOLD) return 0;
-        
+
         return data.floorPrice;
     }
-    
+
     function getUtilityScore(address collection, uint256 tokenId) external view returns (uint256) {
         UtilityData memory data = utilityData[collection][tokenId];
-        
+
         if (!data.isActive) {
             CollectionMetrics memory metrics = collectionMetrics[collection];
             if (metrics.isGameFi) {
@@ -904,26 +916,26 @@ contract GameFiOracleV3 is Ownable, ReentrancyGuard {
             }
             return MIN_UTILITY_SCORE;
         }
-        
+
         if (block.timestamp - data.lastUpdate > UTILITY_STALENESS_THRESHOLD) {
             return MIN_UTILITY_SCORE;
         }
-        
+
         return data.score;
     }
-    
+
     function isActiveAsset(address collection, uint256 tokenId) external view returns (bool) {
         PriceData memory price = priceData[collection];
         if (!price.isActive || block.timestamp - price.lastUpdate > PRICE_STALENESS_THRESHOLD) {
             return false;
         }
-        
+
         CollectionMetrics memory metrics = collectionMetrics[collection];
         if (!metrics.isGameFi) return false;
-        
+
         return true;
     }
-    
+
     function getPriceInfo(address collection) external view returns (
         uint256 floorPrice,
         uint256 lastUpdate,
@@ -936,7 +948,7 @@ contract GameFiOracleV3 is Ownable, ReentrancyGuard {
         isActive = data.isActive;
         isStale = block.timestamp - data.lastUpdate > PRICE_STALENESS_THRESHOLD;
     }
-    
+
     function getUtilityInfo(address collection, uint256 tokenId) external view returns (
         uint256 score,
         uint256 lastUpdate,
@@ -949,7 +961,7 @@ contract GameFiOracleV3 is Ownable, ReentrancyGuard {
         isActive = data.isActive;
         isStale = data.isActive && block.timestamp - data.lastUpdate > UTILITY_STALENESS_THRESHOLD;
     }
-    
+
     function getCollectionHealth(address collection) external view returns (
         uint256 healthScore,
         bool isLiquid,
@@ -957,52 +969,52 @@ contract GameFiOracleV3 is Ownable, ReentrancyGuard {
     ) {
         CollectionMetrics memory metrics = collectionMetrics[collection];
         PriceData memory price = priceData[collection];
-        
+
         if (!metrics.isGameFi || !price.isActive) {
             return (0, false, false);
         }
-        
+
         uint256 volumeScore = metrics.volume24h > 1 ether ? 25 : (metrics.volume24h * 25 / 1 ether);
         uint256 holderScore = metrics.holders > 1000 ? 25 : (metrics.holders * 25 / 1000);
         uint256 liquidityScore = metrics.listingCount > 100 ? 25 : (metrics.listingCount * 25 / 100);
         uint256 holdScore = metrics.avgHoldTime > 30 days ? 25 : (metrics.avgHoldTime * 25 / 30 days);
-        
+
         healthScore = volumeScore + holderScore + liquidityScore + holdScore;
         if (healthScore > 100) healthScore = 100;
-        
+
         isLiquid = metrics.listingCount > 10 && metrics.volume24h > 0.1 ether;
         hasRecentActivity = block.timestamp - price.lastUpdate < 1 hours;
     }
-    
+
     function _calculateDefaultUtilityScore(address collection) internal view returns (uint256) {
         CollectionMetrics memory metrics = collectionMetrics[collection];
-        
+
         if (!metrics.isGameFi) return MIN_UTILITY_SCORE;
-        
+
         uint256 baseScore = 30;
-        
+
         if (metrics.holders > 5000) baseScore = baseScore + 20;
         else if (metrics.holders > 1000) baseScore = baseScore + 10;
-        
+
         if (metrics.volume24h > 10 ether) baseScore = baseScore + 15;
         else if (metrics.volume24h > 1 ether) baseScore = baseScore + 5;
-        
+
         if (metrics.listingCount > 100) baseScore = baseScore + 10;
-        
+
         return baseScore > MAX_UTILITY_SCORE ? MAX_UTILITY_SCORE : baseScore;
     }
-    
+
     function emergencyPause(address collection, bool paused) external onlyOwner {
         priceData[collection].isActive = !paused;
     }
-    
+
     function emergencyUpdatePrice(address collection, uint256 price) external onlyOwner {
         priceData[collection] = PriceData({
             floorPrice: price,
             lastUpdate: block.timestamp,
             isActive: true
         });
-        
+
         emit PriceUpdated(collection, price, block.timestamp);
     }
 }
@@ -1084,9 +1096,9 @@ contract DPOTokenV3 is ERC20, Ownable {
 
     function placeBuyOrder(address collection, uint256 tokenId, uint256 amount, uint256 price) external payable {
         require(msg.value >= (amount * price) / 10**18, "Insufficient payment");
-        
+
         tokenHoldings[collection][tokenId][msg.sender] += amount;
-        
+
         emit OrderPlaced(msg.sender, collection, tokenId, true, amount, price);
         emit TradeExecuted(msg.sender, msg.sender, collection, tokenId, amount, price);
     }
@@ -1587,9 +1599,9 @@ contract LoanManagerV3 is Ownable, ReentrancyGuard {
 
 // MosaicalGovernance.sol
 contract MosaicalGovernance is Ownable, ReentrancyGuard {
-    
+
     IERC20 public governanceToken;
-    
+
     struct Proposal {
         uint256 id;
         address proposer;
@@ -1605,7 +1617,7 @@ contract MosaicalGovernance is Ownable, ReentrancyGuard {
         ProposalType proposalType;
         bytes proposalData;
     }
-    
+
     enum ProposalType {
         PARAMETER_CHANGE,
         COLLECTION_ADDITION,
@@ -1613,30 +1625,30 @@ contract MosaicalGovernance is Ownable, ReentrancyGuard {
         EMERGENCY_ACTION,
         TREASURY_ACTION
     }
-    
+
     enum VoteChoice {
         AGAINST,
         FOR,
         ABSTAIN
     }
-    
+
     struct Vote {
         bool hasVoted;
         VoteChoice choice;
         uint256 weight;
     }
-    
+
     mapping(uint256 => Proposal) public proposals;
     mapping(uint256 => mapping(address => Vote)) public votes;
     mapping(address => uint256) public delegatedVotes;
     mapping(address => address) public delegates;
-    
+
     uint256 public proposalCount;
     uint256 public constant VOTING_DURATION = 3 days;
     uint256 public constant MIN_PROPOSAL_THRESHOLD = 100000 * 10**18;
     uint256 public constant QUORUM_PERCENTAGE = 10;
     uint256 public constant APPROVAL_THRESHOLD = 51;
-    
+
     event ProposalCreated(
         uint256 indexed proposalId,
         address indexed proposer,
@@ -1653,31 +1665,31 @@ contract MosaicalGovernance is Ownable, ReentrancyGuard {
     event ProposalExecuted(uint256 indexed proposalId);
     event ProposalCancelled(uint256 indexed proposalId);
     event DelegateChanged(address indexed delegator, address indexed newDelegate);
-    
+
     constructor(address _governanceToken) Ownable(msg.sender) {
         governanceToken = IERC20(_governanceToken);
     }
-    
+
     function delegate(address delegatee) external {
         address currentDelegate = delegates[msg.sender];
         uint256 delegatorBalance = governanceToken.balanceOf(msg.sender);
-        
+
         if (currentDelegate != address(0)) {
             delegatedVotes[currentDelegate] = delegatedVotes[currentDelegate] - delegatorBalance;
         }
-        
+
         delegates[msg.sender] = delegatee;
         if (delegatee != address(0)) {
             delegatedVotes[delegatee] = delegatedVotes[delegatee] + delegatorBalance;
         }
-        
+
         emit DelegateChanged(msg.sender, delegatee);
     }
-    
+
     function getVotingPower(address account) public view returns (uint256) {
         return governanceToken.balanceOf(account) + delegatedVotes[account];
     }
-    
+
     function createProposal(
         string memory title,
         string memory description,
@@ -1687,10 +1699,10 @@ contract MosaicalGovernance is Ownable, ReentrancyGuard {
         require(getVotingPower(msg.sender) >= MIN_PROPOSAL_THRESHOLD, "Insufficient voting power");
         require(bytes(title).length > 0, "Empty title");
         require(bytes(description).length > 0, "Empty description");
-        
+
         proposalCount++;
         uint256 proposalId = proposalCount;
-        
+
         proposals[proposalId] = Proposal({
             id: proposalId,
             proposer: msg.sender,
@@ -1706,7 +1718,7 @@ contract MosaicalGovernance is Ownable, ReentrancyGuard {
             proposalType: proposalType,
             proposalData: proposalData
         });
-        
+
         emit ProposalCreated(
             proposalId,
             msg.sender,
@@ -1714,10 +1726,10 @@ contract MosaicalGovernance is Ownable, ReentrancyGuard {
             block.timestamp,
             block.timestamp + VOTING_DURATION
         );
-        
+
         return proposalId;
     }
-    
+
     function vote(uint256 proposalId, VoteChoice choice) external nonReentrant {
         Proposal storage proposal = proposals[proposalId];
         require(proposal.id != 0, "Proposal does not exist");
@@ -1725,17 +1737,17 @@ contract MosaicalGovernance is Ownable, ReentrancyGuard {
         require(block.timestamp <= proposal.endTime, "Voting ended");
         require(!proposal.executed, "Proposal already executed");
         require(!proposal.cancelled, "Proposal cancelled");
-        
+
         Vote storage userVote = votes[proposalId][msg.sender];
         require(!userVote.hasVoted, "Already voted");
-        
+
         uint256 weight = getVotingPower(msg.sender);
         require(weight > 0, "No voting power");
-        
+
         userVote.hasVoted = true;
         userVote.choice = choice;
         userVote.weight = weight;
-        
+
         if (choice == VoteChoice.FOR) {
             proposal.forVotes = proposal.forVotes + weight;
         } else if (choice == VoteChoice.AGAINST) {
@@ -1743,36 +1755,36 @@ contract MosaicalGovernance is Ownable, ReentrancyGuard {
         } else {
             proposal.abstainVotes = proposal.abstainVotes + weight;
         }
-        
+
         emit VoteCast(proposalId, msg.sender, choice, weight);
     }
-    
+
     function executeProposal(uint256 proposalId) external nonReentrant {
         Proposal storage proposal = proposals[proposalId];
         require(proposal.id != 0, "Proposal does not exist");
         require(block.timestamp > proposal.endTime, "Voting still active");
         require(!proposal.executed, "Already executed");
         require(!proposal.cancelled, "Proposal cancelled");
-        
+
         uint256 totalVotes = proposal.forVotes + proposal.againstVotes + proposal.abstainVotes;
         uint256 totalSupply = governanceToken.totalSupply();
         uint256 quorumRequired = totalSupply * QUORUM_PERCENTAGE / 100;
         require(totalVotes >= quorumRequired, "Quorum not reached");
-        
+
         uint256 approvalVotes = proposal.forVotes;
         uint256 totalVotesForApproval = proposal.forVotes + proposal.againstVotes;
         require(
             approvalVotes * 100 / totalVotesForApproval >= APPROVAL_THRESHOLD,
             "Proposal not approved"
         );
-        
+
         proposal.executed = true;
-        
+
         _executeProposalAction(proposal);
-        
+
         emit ProposalExecuted(proposalId);
     }
-    
+
     function cancelProposal(uint256 proposalId) external {
         Proposal storage proposal = proposals[proposalId];
         require(proposal.id != 0, "Proposal does not exist");
@@ -1782,11 +1794,11 @@ contract MosaicalGovernance is Ownable, ReentrancyGuard {
         );
         require(!proposal.executed, "Already executed");
         require(!proposal.cancelled, "Already cancelled");
-        
+
         proposal.cancelled = true;
         emit ProposalCancelled(proposalId);
     }
-    
+
     function getProposal(uint256 proposalId) external view returns (
         uint256 id,
         address proposer,
@@ -1817,31 +1829,31 @@ contract MosaicalGovernance is Ownable, ReentrancyGuard {
             proposal.proposalType
         );
     }
-    
+
     function getProposalState(uint256 proposalId) external view returns (string memory) {
         Proposal memory proposal = proposals[proposalId];
-        
+
         if (proposal.id == 0) return "NonExistent";
         if (proposal.cancelled) return "Cancelled";
         if (proposal.executed) return "Executed";
         if (block.timestamp <= proposal.endTime) return "Active";
-        
+
         uint256 totalVotes = proposal.forVotes + proposal.againstVotes + proposal.abstainVotes;
         uint256 totalSupply = governanceToken.totalSupply();
         uint256 quorumRequired = totalSupply * QUORUM_PERCENTAGE / 100;
-        
+
         if (totalVotes < quorumRequired) return "Failed";
-        
+
         uint256 approvalVotes = proposal.forVotes;
         uint256 totalVotesForApproval = proposal.forVotes + proposal.againstVotes;
-        
+
         if (totalVotesForApproval == 0 || approvalVotes * 100 / totalVotesForApproval < APPROVAL_THRESHOLD) {
             return "Failed";
         }
-        
+
         return "Succeeded";
     }
-    
+
     function getUserVote(uint256 proposalId, address user) external view returns (
         bool hasVoted,
         VoteChoice choice,
@@ -1850,7 +1862,7 @@ contract MosaicalGovernance is Ownable, ReentrancyGuard {
         Vote memory userVote = votes[proposalId][user];
         return (userVote.hasVoted, userVote.choice, userVote.weight);
     }
-    
+
     function _executeProposalAction(Proposal memory proposal) internal {
         if (proposal.proposalType == ProposalType.PARAMETER_CHANGE) {
         } else if (proposal.proposalType == ProposalType.COLLECTION_ADDITION) {
@@ -1859,10 +1871,10 @@ contract MosaicalGovernance is Ownable, ReentrancyGuard {
         } else if (proposal.proposalType == ProposalType.TREASURY_ACTION) {
         }
     }
-    
+
     function emergencyPause() external onlyOwner {
     }
-    
+
     function updateVotingParameters(
         uint256 newVotingDuration,
         uint256 newMinProposalThreshold,
@@ -1874,39 +1886,39 @@ contract MosaicalGovernance is Ownable, ReentrancyGuard {
 
 // MosaicalSagaBridge.sol
 contract MosaicalSagaBridge is Ownable, ReentrancyGuard {
-    
+
     address public layerZeroEndpoint;
-    
+
     mapping(uint256 => bool) public supportedChainlets;
     mapping(address => mapping(uint256 => address)) public remoteMappings;
     mapping(address => mapping(uint256 => bool)) public bridgedNFTs;
-    
+
     event NFTBridgeInitiated(
         address indexed collection,
         uint256 indexed tokenId,
         uint256 indexed chainletId,
         address user
     );
-    
+
     event NFTBridgeCompleted(
         address indexed collection,
         uint256 indexed tokenId,
         uint256 indexed chainletId,
         address user
     );
-    
+
     event ChainletAdded(uint256 indexed chainletId);
-    event CollectionMapped(address indexed collection, uint256 indexed chainletId, address remoteCollection);
-    
+    event CollectionMapped(address indexed collection, address remoteCollection, uint256 indexed chainletId);
+
     constructor(address _layerZeroEndpoint) Ownable(msg.sender) {
         layerZeroEndpoint = _layerZeroEndpoint;
     }
-    
+
     function addSupportedChainlet(uint256 chainletId) external onlyOwner {
         supportedChainlets[chainletId] = true;
         emit ChainletAdded(chainletId);
     }
-    
+
     function mapCollection(
         address localCollection,
         uint256 chainletId,
@@ -1914,9 +1926,9 @@ contract MosaicalSagaBridge is Ownable, ReentrancyGuard {
     ) external onlyOwner {
         require(supportedChainlets[chainletId], "Chainlet not supported");
         remoteMappings[localCollection][chainletId] = remoteCollection;
-        emit CollectionMapped(localCollection, chainletId, remoteCollection);
+        emit CollectionMapped(localCollection, remoteCollection, chainletId);
     }
-    
+
     function bridgeNFT(
         address collection,
         uint256 tokenId,
@@ -1926,33 +1938,33 @@ contract MosaicalSagaBridge is Ownable, ReentrancyGuard {
         require(remoteMappings[collection][chainletId] != address(0), "Collection not mapped");
         require(IERC721(collection).ownerOf(tokenId) == msg.sender, "Not NFT owner");
         require(msg.value >= 0.01 ether, "Insufficient bridge fee");
-        
+
         IERC721(collection).transferFrom(msg.sender, address(this), tokenId);
         bridgedNFTs[collection][tokenId] = true;
-        
+
         emit NFTBridgeInitiated(collection, tokenId, chainletId, msg.sender);
     }
-    
+
     function releaseBridgedNFT(
         address collection,
         uint256 tokenId,
         address recipient
     ) external onlyOwner {
         require(bridgedNFTs[collection][tokenId], "NFT not bridged");
-        
+
         bridgedNFTs[collection][tokenId] = false;
         IERC721(collection).transferFrom(address(this), recipient, tokenId);
-        
+
         emit NFTBridgeCompleted(collection, tokenId, 0, recipient);
     }
-    
+
     function updateLayerZeroEndpoint(address _endpoint) external onlyOwner {
         layerZeroEndpoint = _endpoint;
     }
-    
+
     function withdrawFees() external onlyOwner {
         payable(owner()).transfer(address(this).balance);
     }
-    
+
     receive() external payable {}
 }
