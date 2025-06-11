@@ -34,7 +34,8 @@ describe("Mosaical MVP Test Suite", function () {
     await governance.waitForDeployment();
 
     const NFTVaultV3 = await ethers.getContractFactory("NFTVaultV3");
-    nftVault = await NFTVaultV3.deploy(await oracle.getAddress());
+    const oracleAddress = await oracle.getAddress();
+    nftVault = await NFTVaultV3.deploy(oracleAddress);
     await nftVault.waitForDeployment();
 
     // Deploy DPO Token
@@ -44,10 +45,12 @@ describe("Mosaical MVP Test Suite", function () {
 
     // Deploy LoanManager
     const LoanManagerV3 = await ethers.getContractFactory("LoanManagerV3");
+    const nftVaultAddress = await nftVault.getAddress();
+    const dpoTokenAddress = await dpoToken.getAddress();
     loanManager = await LoanManagerV3.deploy(
-      await nftVault.getAddress(), 
-      await oracle.getAddress(),
-      await dpoToken.getAddress()
+      nftVaultAddress, 
+      oracleAddress,
+      dpoTokenAddress
     );
     await loanManager.waitForDeployment();
 
