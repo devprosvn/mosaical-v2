@@ -59,6 +59,10 @@ describe("Mosaical MVP Test Suite", function () {
     bridge = await MosaicalSagaBridge.deploy(mockLayerZeroEndpoint); // Mock LayerZero endpoint
     await bridge.waitForDeployment();
 
+    // Authorize LoanManager to mint DPO tokens
+    const loanManagerAddress = await loanManager.getAddress();
+    await dpoToken.authorizeMinter(loanManagerAddress);
+
     // Setup test data
     await nftVault.addSupportedCollection(collectionAddress);
     await nftVault.setGameCategory(collectionAddress, 1); // RPG
