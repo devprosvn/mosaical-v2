@@ -38,24 +38,15 @@ module.exports = {
   },
   etherscan: {
     apiKey: {
-      devpros: "abc",
-      saga: "abc"
+      devpros: "empty"
     },
     customChains: [
       {
-        network: "devpros", 
+        network: "devpros",
         chainId: 2749656616387000,
         urls: {
-          apiURL: "https://devpros-2749656616387000-1.sagaexplorer.io/api",
-          browserURL: "https://devpros-2749656616387000-1.sagaexplorer.io"
-        }
-      },
-      {
-        network: "saga",
-        chainId: 2749656616387000,
-        urls: {
-          apiURL: "https://devpros-2749656616387000-1.sagaexplorer.io/api",
-          browserURL: "https://devpros-2749656616387000-1.sagaexplorer.io"
+          apiURL: "https://api-devpros-2749656616387000-1.sagaexplorer.io/api",
+          browserURL: "https://devpros-2749656616387000-1.sagaexplorer.io:443"
         }
       }
     ]

@@ -1,121 +1,85 @@
-
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
 async function verifyContracts() {
-    console.log('🔍 Verifying contracts on Saga Explorer...');
-    
+    console.log('🔍 Verifying contracts on devpros Saga Explorer...');
+
     try {
         // Load deployment info
-        const deploymentPath = `deployments/${process.env.NETWORK}-deployment.json`;
+        const deploymentPath = path.join(__dirname, '../deployments/saga-deployment.json');
         if (!fs.existsSync(deploymentPath)) {
             console.error('❌ No deployment found. Please deploy contracts first.');
             return;
         }
-        
+
         const deployment = JSON.parse(fs.readFileSync(deploymentPath));
         console.log('📋 Loaded deployment info for verification');
-        
+
         const contracts = deployment.contracts;
-        
-        // Verify contracts in order (dependencies first)
-        const verificationSteps = [
-            {
-                name: 'MockGameNFT',
-                address: contracts.MockGameNFT,
-                constructorArgs: ['"Test Game NFT"', '"TGNFT"']
-            },
-            {
-                name: 'GovernanceToken', 
-                address: contracts.GovernanceToken,
-                constructorArgs: ['"Mosaical Governance"', '"MSCLGOV"']
-            },
-            {
-                name: 'GameFiOracleV3',
-                address: contracts.GameFiOracleV3,
-                constructorArgs: []
-            },
-            {
-                name: 'NFTVaultV3',
-                address: contracts.NFTVaultV3,
-                constructorArgs: [contracts.GameFiOracleV3]
-            },
-            {
-                name: 'MosaicalGovernance',
-                address: contracts.MosaicalGovernance,
-                constructorArgs: [contracts.GovernanceToken]
-            },
-            {
-                name: 'DPOTokenV3',
-                address: contracts.DPOTokenV3,
-                constructorArgs: []
-            },
-            {
-                name: 'LoanManagerV3',
-                address: contracts.LoanManagerV3,
-                constructorArgs: [contracts.NFTVaultV3, contracts.DPOTokenV3]
-            },
-            {
-                name: 'MosaicalSagaBridge',
-                address: contracts.MosaicalSagaBridge,
-                constructorArgs: ['"0x1234567890123456789012345678901234567890"']
-            }
-        ];
-        
-        console.log('🚀 Starting verification process...\n');
-        
-        for (const contract of verificationSteps) {
-            console.log(`🔍 Verifying ${contract.name} at ${contract.address}...`);
-            
-            try {
-                const { spawn } = require('child_process');
-                
-                const args = [
-                    'hardhat', 'verify',
-                    '--network', 'mosaical',
-                    contract.address,
-                    ...contract.constructorArgs
-                ];
-                
-                console.log(`Running: npx ${args.join(' ')}`);
-                
-                const result = await new Promise((resolve, reject) => {
-                    const process = spawn('npx', args, { stdio: 'inherit' });
-                    
-                    process.on('close', (code) => {
-                        if (code === 0) {
-                            resolve('success');
-                        } else {
-                            resolve('failed');
-                        }
-                    });
-                    
-                    process.on('error', (error) => {
-                        reject(error);
-                    });
-                });
-                
-                if (result === 'success') {
-                    console.log(`✅ ${contract.name} verified successfully\n`);
-                } else {
-                    console.log(`⚠️ ${contract.name} verification may have failed (check output above)\n`);
-                }
-                
-                // Add delay between verifications to avoid rate limiting
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                
-            } catch (error) {
-                console.error(`❌ Error verifying ${contract.name}:`, error.message);
-                console.log('Continuing with next contract...\n');
-            }
-        }
-        
-        console.log('🎉 Verification process completed!');
-        console.log(`🌐 Check your contracts on: ${deployment.blockExplorer || 'https://mosaical-2745549204473000-1.sagaexplorer.io'}`);
-        
+
+        console.log('🚀 Verification commands for each contract:\n');
+
+        // MockGameNFT
+        console.log('🔍 MockGameNFT:');
+        console.log(`npx hardhat verify \\
+  --network devpros \\
+  ${contracts.MockGameNFT} \\
+  "Test Game NFT" "TGNFT"\n`);
+
+        // GovernanceToken
+        console.log('🔍 GovernanceToken:');
+        console.log(`npx hardhat verify \\
+  --network devpros \\
+  ${contracts.GovernanceToken} \\
+  "Devpros Governance" "DPSGOV"\n`);
+
+        // GameFiOracleV3
+        console.log('🔍 GameFiOracleV3:');
+        console.log(`npx hardhat verify \\
+  --network devpros \\
+  ${contracts.GameFiOracleV3}\n`);
+
+        // NFTVaultV3
+        console.log('🔍 NFTVaultV3:');
+        console.log(`npx hardhat verify \\
+  --network devpros \\
+  ${contracts.NFTVaultV3} \\
+  ${contracts.GameFiOracleV3}\n`);
+
+        // MosaicalGovernance
+        console.log('🔍 MosaicalGovernance:');
+        console.log(`npx hardhat verify \\
+  --network devpros \\
+  ${contracts.MosaicalGovernance} \\
+  ${contracts.GovernanceToken}\n`);
+
+        // DPOTokenV3
+        console.log('🔍 DPOTokenV3:');
+        console.log(`npx hardhat verify \\
+  --network devpros \\
+  ${contracts.DPOTokenV3}\n`);
+
+        // LoanManagerV3
+        console.log('🔍 LoanManagerV3:');
+        console.log(`npx hardhat verify \\
+  --network devpros \\
+  ${contracts.LoanManagerV3} \\
+  ${contracts.NFTVaultV3} \\
+  ${contracts.DPOTokenV3}\n`);
+
+        // MosaicalSagaBridge
+        console.log('🔍 MosaicalSagaBridge:');
+        console.log(`npx hardhat verify \\
+  --network devpros \\
+  ${contracts.MosaicalSagaBridge} \\
+  "0xcca6F4EA7e82941535485C2363575404C3061CD2"\n`);
+
+        console.log('📋 You can run these commands individually to verify each contract.');
+        console.log(`🌐 Check verification status on: ${deployment.blockExplorer || 'https://devpros-2749656616387000-1.sagaexplorer.io'}`);
+
     } catch (error) {
-        console.error('❌ Verification failed:', error.message);
+        console.error('❌ Verification setup failed:', error.message);
         process.exit(1);
     }
 }
