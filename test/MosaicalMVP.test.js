@@ -355,6 +355,7 @@ describe("Mosaical MVP Test Suite", function () {
       await dpoToken.distributeInterest(
         collectionAddress,
         1,
+        borrower.address,
         interestAmount
       );
 
@@ -364,7 +365,7 @@ describe("Mosaical MVP Test Suite", function () {
         collectionAddress,
         1
       );
-      expect(pending).to.be.gt(0);
+      expect(pending).to.equal(interestAmount);
 
       // Claim interest
       await dpoToken.connect(borrower).claimInterest(collectionAddress, 1);
@@ -615,7 +616,12 @@ describe("Mosaical MVP Test Suite", function () {
 
       // 7. Distribute interest
       const interestAmount = ethers.parseEther("0.1");
-      await dpoToken.distributeInterest(collectionAddress, 1, interestAmount);
+      await dpoToken.distributeInterest(
+        collectionAddress,
+        1,
+        borrower.address,
+        interestAmount
+      );
 
       // 8. Claim interest
       await dpoToken.connect(borrower).claimInterest(collectionAddress, 1);

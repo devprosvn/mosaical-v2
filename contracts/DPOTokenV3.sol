@@ -86,7 +86,7 @@ contract DPOTokenV3 is ERC20, Ownable {
     }
 
     function placeBuyOrder(address collection, uint256 tokenId, uint256 amount, uint256 price) external payable {
-        require(msg.value >= amount * price, "Insufficient payment");
+        require(msg.value >= (amount * price) / 10**18, "Insufficient payment");
         
         // For simplification, immediately execute the trade with the caller as both buyer and seller
         tokenHoldings[collection][tokenId][msg.sender] += amount;
