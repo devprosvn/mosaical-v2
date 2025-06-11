@@ -16,16 +16,16 @@ module.exports = {
   },
   networks: {
     saga: {
-      url: process.env.RPC_URL || "https://mosaical-2745549204473000-1.jsonrpc.sagarpc.io",
+      url: process.env.RPC_URL || "https://devpros-2749656616387000-1.jsonrpc.sagarpc.io",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
-      chainId: 2745549204473000,
+      chainId: 2749656616387000,
       gasPrice: "auto",
       timeout: 60000
     },
-    mosaical: {
-      url: "https://mosaical-2745549204473000-1.jsonrpc.sagarpc.io",
+    devpros: {
+      url: "https://devpros-2749656616387000-1.jsonrpc.sagarpc.io",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
-      chainId: 2745549204473000,
+      chainId: 2749656616387000,
       gasPrice: "auto",
       timeout: 60000
     },
@@ -39,23 +39,23 @@ module.exports = {
   etherscan: {
     apiKey: {
       saga: "abc",
-      mosaical: "abc"
+      devpros: "abc"
     },
     customChains: [
       {
         network: "saga",
-        chainId: 2745549204473000,
+        chainId: 2749656616387000,
         urls: {
-          apiURL: "https://mosaical-2745549204473000-1.sagaexplorer.io/api",
-          browserURL: "https://mosaical-2745549204473000-1.sagaexplorer.io"
+          apiURL: "https://devpros-2749656616387000-1.sagaexplorer.io/api",
+          browserURL: "https://devpros-2749656616387000-1.sagaexplorer.io"
         }
       },
       {
-        network: "mosaical", 
-        chainId: 2745549204473000,
+        network: "devpros", 
+        chainId: 2749656616387000,
         urls: {
-          apiURL: "https://mosaical-2745549204473000-1.sagaexplorer.io/api",
-          browserURL: "https://mosaical-2745549204473000-1.sagaexplorer.io"
+          apiURL: "https://devpros-2749656616387000-1.sagaexplorer.io/api",
+          browserURL: "https://devpros-2749656616387000-1.sagaexplorer.io"
         }
       }
     ]

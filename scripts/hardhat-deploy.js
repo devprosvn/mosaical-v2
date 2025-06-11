@@ -3,13 +3,13 @@ const hre = require("hardhat");
 const fs = require('fs');
 
 async function main() {
-  console.log('🚀 Deploying contracts to Saga chainlet using Hardhat...');
+  console.log('🚀 Deploying contracts to devpros chainlet using Hardhat...');
   
   const [deployer] = await hre.ethers.getSigners();
   console.log("Deploying contracts with account:", deployer.address);
   
   const balance = await hre.ethers.provider.getBalance(deployer.address);
-  console.log("Account balance:", hre.ethers.formatEther(balance), "MOSAIC");
+  console.log("Account balance:", hre.ethers.formatEther(balance), "DPSV");
 
   // Deploy MockGameNFT
   const MockGameNFT = await hre.ethers.getContractFactory("MockGameNFT");
