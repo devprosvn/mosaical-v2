@@ -6,7 +6,12 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 interface INFTVault {
-    function deposits(address collection, uint256 tokenId) external view returns (address);
+    struct NFTDeposit {
+        address owner;
+        uint256 depositTime;
+        bool isActive;
+    }
+    function deposits(address collection, uint256 tokenId) external view returns (NFTDeposit memory);
     function getMaxLTV(address collection, uint256 tokenId) external view returns (uint256);
     function oracle() external view returns (IGameFiOracle);
 }
@@ -120,10 +125,12 @@ contract LoanManagerV3 is Ownable, ReentrancyGuard {
     }
 
     function borrow(address collection, uint256 tokenId, uint256 amount) external nonReentrant {
-        require(nftVault.deposits(collection, tokenId) == msg.sender, "Not your NFT");
+        require(nftVault.deposits(collection, tokenId).owner == msg.sender, "Not your NFT");
         require(!loanData[msg.sender][collection][tokenId].isActive, "Active loan exists");
 
-        uint256 maxBorrow = nftVault.getMaxLTV(collection, tokenId) * nftVault.oracle().getFloorPrice(collection) / 10000;
+        uint256 floorPrice = nftVault.oracle().getFloorPrice(collection);
+        uint256 maxLTVPercent = nftVault.getMaxLTV(collection, tokenId);
+        uint256 maxBorrow = floorPrice * maxLTVPercent / 100;
         require(amount <= maxBorrow, "Exceeds max LTV");
         require(address(this).balance >= amount, "Insufficient liquidity");
 

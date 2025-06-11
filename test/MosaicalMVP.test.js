@@ -61,10 +61,10 @@ describe("Mosaical MVP Test Suite", function () {
     await gameNFT.mint(borrower.address, 2);
     await gameNFT.mint(lender.address, 3);
 
-    // Fund treasury
+    // Fund treasury with more ETH to prevent insufficient funds
     await admin.sendTransaction({
       to: treasury.address,
-      value: ethers.parseEther("1000")
+      value: ethers.parseEther("5000")
     });
   });
 

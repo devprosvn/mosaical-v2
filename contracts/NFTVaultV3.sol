@@ -92,7 +92,7 @@ contract NFTVaultV3 is Ownable, ReentrancyGuard {
 
     constructor(address _oracle) Ownable(msg.sender) {
         oracle = IGameFiOracle(_oracle);
-        
+
         // Initialize risk models
         riskModels[1] = RiskModel(70, 80, 20, 1 ether);   // Tier 1: 70% LTV, 80% liquidation
         riskModels[2] = RiskModel(65, 75, 15, 2 ether);   // Tier 2: 65% LTV, 75% liquidation  
@@ -277,10 +277,10 @@ contract NFTVaultV3 is Ownable, ReentrancyGuard {
     function getMaxLTV(address collection, uint256 tokenId) public view returns (uint256) {
         uint8 riskTier = collectionRiskTiers[collection];
         if (riskTier == 0) riskTier = 3; // Default to tier 3
-        
+
         RiskModel memory model = riskModels[riskTier];
         uint256 utilityScore = oracle.getUtilityScore(collection, tokenId);
-        
+
         // Add utility bonus (max bonus defined in risk model)
         uint256 bonus = (utilityScore * model.maxUtilityBonus) / 100;
         return model.baseLTV + bonus;
@@ -297,4 +297,8 @@ contract NFTVaultV3 is Ownable, ReentrancyGuard {
 
     // Receive ETH for liquidity
     receive() external payable {}
+
+    function deposits(address collection, uint256 tokenId) public view returns (address) {
+        return deposits[collection][tokenId].owner;
+    }
 }
