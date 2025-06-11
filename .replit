@@ -61,3 +61,12 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npx hardhat test"
+
+[[workflows.workflow]]
+name = "Flatten Contracts"
+author = 42118327
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node scripts/flatten.js"
