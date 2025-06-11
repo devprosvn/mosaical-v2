@@ -1,36 +1,40 @@
-
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { time } = require("@nomicfoundation/hardhat-toolbox/network-helpers");
 
 describe("Mosaical MVP Test Suite", function () {
-  let admin, borrower, lender, treasury, governance;
+  let admin, borrower, lender, treasury;
   let nftVault, loanManager, dpoToken, oracle, bridge;
-  let gameNFT, governanceToken;
+  let gameNFT, governanceToken, governance;
   let chainletId, collectionAddress;
 
   beforeEach(async function () {
-    [admin, borrower, lender, treasury, governance] = await ethers.getSigners();
+    [admin, borrower, lender, treasury] = await ethers.getSigners();
 
     // Deploy Mock GameFi NFT
     const MockGameNFT = await ethers.getContractFactory("MockGameNFT");
     gameNFT = await MockGameNFT.deploy("Test Game NFT", "TGNFT");
-    collectionAddress = gameNFT.address;
+    await gameNFT.waitForDeployment();
+    collectionAddress = await gameNFT.getAddress();
     chainletId = "0x1111111111111111111111111111111111111111";
 
     // Deploy Governance Token
     const GovernanceToken = await ethers.getContractFactory("GovernanceToken");
     governanceToken = await GovernanceToken.deploy("Mosaical Governance", "MSCLGOV");
+    await governanceToken.waitForDeployment();
 
     // Deploy Core Contracts
     const MosaicalGovernance = await ethers.getContractFactory("MosaicalGovernance");
-    governance = await MosaicalGovernance.deploy(governanceToken.address);
+    governance = await MosaicalGovernance.deploy(await governanceToken.getAddress());
+    await governance.waitForDeployment();
 
     const GameFiOracleV3 = await ethers.getContractFactory("GameFiOracleV3");
     oracle = await GameFiOracleV3.deploy();
+    await oracle.waitForDeployment();
 
     const NFTVaultV3 = await ethers.getContractFactory("NFTVaultV3");
-    nftVault = await NFTVaultV3.deploy(oracle.address);
+    nftVault = await NFTVaultV3.deploy(await oracle.getAddress());
+    await nftVault.waitForDeployment();
 
     const DPOTokenV3 = await ethers.getContractFactory("DPOTokenV3");
     dpoToken = await DPOTokenV3.deploy();
@@ -47,7 +51,7 @@ describe("Mosaical MVP Test Suite", function () {
     await nftVault.setCollectionRiskTier(collectionAddress, 2); // Medium risk
 
     // Set oracle prices
-    await oracle.setCollectionFloorPrice(collectionAddress, ethers.utils.parseEther("10"));
+    await oracle.setCollectionFloorPrice(collectionAddress, ethers.parseEther("10"));
     await oracle.setNFTUtilityScore(collectionAddress, 1, 150);
 
     // Mint NFTs
@@ -58,14 +62,14 @@ describe("Mosaical MVP Test Suite", function () {
     // Fund treasury
     await admin.sendTransaction({
       to: treasury.address,
-      value: ethers.utils.parseEther("1000")
+      value: ethers.parseEther("1000")
     });
   });
 
   describe("Governance System", function () {
     it("Should create proposals", async function () {
       // Mint governance tokens
-      await governanceToken.mint(admin.address, ethers.utils.parseEther("2000000"));
+      await governanceToken.mint(admin.address, ethers.parseEther("2000000"));
 
       // Create proposal
       const tx = await governance.connect(admin).createProposal(
@@ -76,13 +80,21 @@ describe("Mosaical MVP Test Suite", function () {
       );
       const receipt = await tx.wait();
 
-      const event = receipt.events.find(e => e.event === "ProposalCreated");
+      const event = receipt.logs.find(log => {
+        try {
+          return governance.interface.parseLog(log).name === "ProposalCreated";
+        } catch {
+          return false;
+        }
+      });
+
       expect(event).to.not.be.undefined;
-      expect(event.args.proposalId).to.equal(1);
+      const parsedEvent = governance.interface.parseLog(event);
+      expect(parsedEvent.args.proposalId).to.equal(1);
     });
 
     it("Should handle voting process", async function () {
-      await governanceToken.mint(admin.address, ethers.utils.parseEther("2000000"));
+      await governanceToken.mint(admin.address, ethers.parseEther("2000000"));
 
       // Create proposal
       await governance.connect(admin).createProposal(
@@ -103,12 +115,12 @@ describe("Mosaical MVP Test Suite", function () {
 
   describe("NFT Vault System", function () {
     it("Should deposit NFT and calculate correct LTV", async function () {
-      await gameNFT.connect(borrower).approve(nftVault.address, 1);
+      await gameNFT.connect(borrower).approve(await nftVault.getAddress(), 1);
       await nftVault.connect(borrower).depositNFT(collectionAddress, 1);
 
       // Verify deposit
       expect(await nftVault.deposits(borrower.address, collectionAddress, 1)).to.be.true;
-      expect(await gameNFT.ownerOf(1)).to.equal(nftVault.address);
+      expect(await gameNFT.ownerOf(1)).to.equal(await nftVault.getAddress());
 
       // Check max LTV calculation
       const maxLTV = await nftVault.getMaxLTV(collectionAddress, 1);
@@ -125,7 +137,7 @@ describe("Mosaical MVP Test Suite", function () {
     });
 
     it("Should prevent unauthorized withdrawals", async function () {
-      await gameNFT.connect(borrower).approve(nftVault.address, 1);
+      await gameNFT.connect(borrower).approve(await nftVault.getAddress(), 1);
       await nftVault.connect(borrower).depositNFT(collectionAddress, 1);
 
       // Try to withdraw from different account
@@ -138,16 +150,16 @@ describe("Mosaical MVP Test Suite", function () {
   describe("Loan Manager System", function () {
     it("Should create loan with correct parameters", async function () {
       // Deposit NFT first
-      await gameNFT.connect(borrower).approve(nftVault.address, 1);
+      await gameNFT.connect(borrower).approve(await nftVault.getAddress(), 1);
       await nftVault.connect(borrower).depositNFT(collectionAddress, 1);
 
       // Fund loan manager
       await admin.sendTransaction({
         to: loanManager.address,
-        value: ethers.utils.parseEther("100")
+        value: ethers.parseEther("100")
       });
 
-      const borrowAmount = ethers.utils.parseEther("5");
+      const borrowAmount = ethers.parseEther("5");
       await loanManager.connect(borrower).borrow(
         collectionAddress,
         1,
@@ -182,15 +194,15 @@ describe("Mosaical MVP Test Suite", function () {
 
     it("Should handle loan repayment correctly", async function () {
       // Setup loan
-      await gameNFT.connect(borrower).approve(nftVault.address, 1);
+      await gameNFT.connect(borrower).approve(await nftVault.getAddress(), 1);
       await nftVault.connect(borrower).depositNFT(collectionAddress, 1);
       
       await admin.sendTransaction({
         to: loanManager.address,
-        value: ethers.utils.parseEther("100")
+        value: ethers.parseEther("100")
       });
 
-      const borrowAmount = ethers.utils.parseEther("5");
+      const borrowAmount = ethers.parseEther("5");
       await loanManager.connect(borrower).borrow(
         collectionAddress,
         1,
@@ -224,15 +236,15 @@ describe("Mosaical MVP Test Suite", function () {
   describe("DPO Token System", function () {
     it("Should mint DPO tokens on loan creation", async function () {
       // Setup loan
-      await gameNFT.connect(borrower).approve(nftVault.address, 1);
+      await gameNFT.connect(borrower).approve(await nftVault.getAddress(), 1);
       await nftVault.connect(borrower).depositNFT(collectionAddress, 1);
       
       await admin.sendTransaction({
         to: loanManager.address,
-        value: ethers.utils.parseEther("100")
+        value: ethers.parseEther("100")
       });
 
-      const borrowAmount = ethers.utils.parseEther("5");
+      const borrowAmount = ethers.parseEther("5");
       await loanManager.connect(borrower).borrow(
         collectionAddress,
         1,
@@ -253,18 +265,18 @@ describe("Mosaical MVP Test Suite", function () {
 
     it("Should handle DPO token trading", async function () {
       // Setup loan and get DPO tokens
-      await gameNFT.connect(borrower).approve(nftVault.address, 1);
+      await gameNFT.connect(borrower).approve(await nftVault.getAddress(), 1);
       await nftVault.connect(borrower).depositNFT(collectionAddress, 1);
       
       await admin.sendTransaction({
         to: loanManager.address,
-        value: ethers.utils.parseEther("100")
+        value: ethers.parseEther("100")
       });
 
       await loanManager.connect(borrower).borrow(
         collectionAddress,
         1,
-        ethers.utils.parseEther("5")
+        ethers.parseEther("5")
       );
 
       const dpoBalance = await dpoToken.tokenHoldings(
@@ -275,7 +287,7 @@ describe("Mosaical MVP Test Suite", function () {
 
       // Place sell order
       const sellAmount = dpoBalance.div(2);
-      const sellPrice = ethers.utils.parseEther("0.001");
+      const sellPrice = ethers.parseEther("0.001");
 
       await dpoToken.connect(borrower).placeSellOrder(
         collectionAddress,
@@ -305,22 +317,22 @@ describe("Mosaical MVP Test Suite", function () {
 
     it("Should distribute and claim interest", async function () {
       // Setup with DPO tokens
-      await gameNFT.connect(borrower).approve(nftVault.address, 1);
+      await gameNFT.connect(borrower).approve(await nftVault.getAddress(), 1);
       await nftVault.connect(borrower).depositNFT(collectionAddress, 1);
       
       await admin.sendTransaction({
         to: loanManager.address,
-        value: ethers.utils.parseEther("100")
+        value: ethers.parseEther("100")
       });
 
       await loanManager.connect(borrower).borrow(
         collectionAddress,
         1,
-        ethers.utils.parseEther("5")
+        ethers.parseEther("5")
       );
 
       // Distribute interest
-      const interestAmount = ethers.utils.parseEther("0.1");
+      const interestAmount = ethers.parseEther("0.1");
       await dpoToken.distributeInterest(
         collectionAddress,
         1,
@@ -350,20 +362,20 @@ describe("Mosaical MVP Test Suite", function () {
   describe("Oracle System", function () {
     it("Should provide accurate NFT pricing", async function () {
       const price = await oracle.getNFTPrice(collectionAddress, 1);
-      
+
       // Price should be floor price * utility multiplier
       // 10 ETH * 1.5 (150 utility score) = 15 ETH
-      expect(price).to.equal(ethers.utils.parseEther("15"));
+      expect(price).to.equal(ethers.parseEther("15"));
     });
 
     it("Should track price history and volatility", async function () {
       // Set initial price
-      await oracle.setCollectionFloorPrice(collectionAddress, ethers.utils.parseEther("10"));
-      
+      await oracle.setCollectionFloorPrice(collectionAddress, ethers.parseEther("10"));
+
       // Update price multiple times
       for (let i = 0; i < 5; i++) {
         await time.increase(time.duration.hours(1));
-        const newPrice = ethers.utils.parseEther((10 + i).toString());
+        const newPrice = ethers.parseEther((10 + i).toString());
         await oracle.setCollectionFloorPrice(collectionAddress, newPrice);
       }
 
@@ -424,7 +436,7 @@ describe("Mosaical MVP Test Suite", function () {
           collectionAddress,
           10,
           remoteChainletId,
-          { value: ethers.utils.parseEther("0.1") }
+          { value: ethers.parseEther("0.1") }
         )
       ).to.emit(bridge, "NFTBridgeInitiated");
 
@@ -439,7 +451,7 @@ describe("Mosaical MVP Test Suite", function () {
       ).to.be.reverted;
 
       await expect(
-        oracle.connect(borrower).setCollectionFloorPrice(collectionAddress, ethers.utils.parseEther("100"))
+        oracle.connect(borrower).setCollectionFloorPrice(collectionAddress, ethers.parseEther("100"))
       ).to.be.reverted;
     });
 
@@ -448,18 +460,18 @@ describe("Mosaical MVP Test Suite", function () {
         loanManager.connect(borrower).borrow(
           collectionAddress,
           1,
-          ethers.utils.parseEther("5")
+          ethers.parseEther("5")
         )
       ).to.be.revertedWith("Not your NFT");
     });
 
     it("Should prevent exceeding LTV limits", async function () {
-      await gameNFT.connect(borrower).approve(nftVault.address, 1);
+      await gameNFT.connect(borrower).approve(await nftVault.getAddress(), 1);
       await nftVault.connect(borrower).depositNFT(collectionAddress, 1);
 
       await admin.sendTransaction({
         to: loanManager.address,
-        value: ethers.utils.parseEther("100")
+        value: ethers.parseEther("100")
       });
 
       // Try to borrow more than max LTV
@@ -467,7 +479,7 @@ describe("Mosaical MVP Test Suite", function () {
         loanManager.connect(borrower).borrow(
           collectionAddress,
           1,
-          ethers.utils.parseEther("20") // More than NFT value
+          ethers.parseEther("20") // More than NFT value
         )
       ).to.be.revertedWith("Exceeds max LTV");
     });
@@ -476,17 +488,17 @@ describe("Mosaical MVP Test Suite", function () {
   describe("Integration Tests", function () {
     it("Should complete full lending cycle", async function () {
       // 1. Deposit NFT
-      await gameNFT.connect(borrower).approve(nftVault.address, 1);
+      await gameNFT.connect(borrower).approve(await nftVault.getAddress(), 1);
       await nftVault.connect(borrower).depositNFT(collectionAddress, 1);
 
       // 2. Fund loan manager
       await admin.sendTransaction({
         to: loanManager.address,
-        value: ethers.utils.parseEther("100")
+        value: ethers.parseEther("100")
       });
 
       // 3. Create loan
-      const borrowAmount = ethers.utils.parseEther("5");
+      const borrowAmount = ethers.parseEther("5");
       await loanManager.connect(borrower).borrow(
         collectionAddress,
         1,
@@ -503,7 +515,7 @@ describe("Mosaical MVP Test Suite", function () {
 
       // 5. Trade DPO tokens
       const sellAmount = dpoBalance.div(3);
-      const sellPrice = ethers.utils.parseEther("0.001");
+      const sellPrice = ethers.parseEther("0.001");
 
       await dpoToken.connect(borrower).placeSellOrder(
         collectionAddress,
@@ -525,7 +537,7 @@ describe("Mosaical MVP Test Suite", function () {
       await time.increase(time.duration.days(30));
 
       // 7. Distribute interest
-      const interestAmount = ethers.utils.parseEther("0.1");
+      const interestAmount = ethers.parseEther("0.1");
       await dpoToken.distributeInterest(collectionAddress, 1, interestAmount);
 
       // 8. Claim interest
