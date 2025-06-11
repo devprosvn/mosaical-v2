@@ -1,0 +1,59 @@
+Excellent, you're down to the final two errors!
+
+Both failing tests (`Should handle loan repayment correctly` and `Should complete full lending cycle`) are breaking for the exact same reason. The issue lies in how the total amount owed is calculated and paid.
+
+## The Root Cause
+
+The problem is a **double calculation of interest**.
+
+1.  Your tests call `await loanManager.updateLoanInterest(...)` to update the loan's state.
+2.  Then, your tests calculate `totalOwed` based on that updated state.
+3.  Finally, you call `await loanManager.repay(...)`.
+
+However, the very first line inside the contract's `repay` function is *another* call to `updateLoanInterest`.
+
+Even though only a tiny amount of time passes between the test's call and the contract's internal call, a minuscule amount of extra interest is accrued. This makes the `totalOwed` calculated *inside the contract* slightly higher than the `totalOwed` you calculated in the test and sent as a parameter.
+
+This discrepancy causes the check `require(amount >= totalOwed, "Must repay full amount")` to fail.
+
+---
+
+### ✅ The Solution
+
+The `repay` function should be the single source of truth for the final interest calculation. Your tests should not call `updateLoanInterest` themselves before repaying. Instead, they should use the `getAccruedInterest` `view` function to determine the amount to send.
+
+Here are the required changes for your test file.
+
+#### **File: `test/MosaicalMVP.test.js`**
+
+Apply the following corrections to **both** of the failing test cases.
+
+1.  **`it("Should handle loan repayment correctly", ...)`**
+2.  **`it("Should complete full lending cycle", ...)`**
+
+```javascript
+// Inside the test case (applies to both):
+
+// ... (setup code, including the loan creation and time.increase)
+
+// ❌ FIX: Remove the redundant state-changing call from the test.
+// await loanManager.updateLoanInterest(borrower.address, collectionAddress, 1);
+
+// ✅ FIX: Use the 'getAccruedInterest' VIEW function to determine the total amount owed
+// without changing state. This gives you the precise, up-to-the-block value.
+const totalOwed = await loanManager.getAccruedInterest(borrower.address, collectionAddress, 1);
+
+// Repay loan using the accurately calculated amount.
+// Note: In the repay function, the `amount` parameter and `msg.value` are both used.
+// We send `totalOwed` for both.
+await loanManager.connect(borrower).repay(
+  collectionAddress,
+  1,
+  totalOwed,
+  { value: totalOwed }
+);
+
+// ... (rest of the test assertions) ...
+```
+
+By removing the extra `updateLoanInterest` call from your tests and using the `getAccruedInterest` view function instead, you ensure that the amount you send for repayment exactly matches the contract's expectation. This will resolve the final two errors.
