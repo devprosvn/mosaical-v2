@@ -1,0 +1,122 @@
+Dựa vào lỗi bạn cung cấp:
+
+```
+TypeError: invalid overrides parameter (argument="overrides", value="0x5FC8d32690cc91D4c39d9d3abcBD16989F875707", code=INVALID_ARGUMENT, version=6.14.3)
+```
+
+Lỗi này xảy ra khi bạn truyền một giá trị không hợp lệ vào tham số `overrides` khi triển khai (deploy) contract bằng ethers.js. Cụ thể, giá trị `0x5FC8d32690cc91D4c39d9d3abcBD16989F875707` trông giống như một địa chỉ contract, nhưng tham số `overrides` thường được sử dụng để cung cấp các tùy chọn như `gasLimit`, `gasPrice`, `value`, v.v., chứ không phải là địa chỉ contract.
+
+Nhìn vào dòng gây lỗi: `at Context.<anonymous> (test/MosaicalMVP.test.js:50:39)`, vấn đề nằm ở dòng 50 trong file `test/MosaicalMVP.test.js` khi bạn đang cố gắng triển khai contract.
+
+**Cách sửa lỗi:**
+
+Bạn cần kiểm tra cách bạn đang gọi hàm `deploy` của `ContractFactory` ở dòng 50 trong file `test/MosaicalMVP.test.js`.
+
+**Trường hợp 1: Bạn đang cố gắng truyền địa chỉ của một contract đã triển khai.**
+
+Nếu bạn muốn tương tác với một contract đã được triển khai, bạn không sử dụng `ContractFactory.deploy()`. Thay vào đó, bạn sẽ sử dụng `Contract.attach()` hoặc `Contract.connect()` với địa chỉ của contract.
+
+Ví dụ:
+
+```javascript
+// Nếu bạn đã có địa chỉ của contract MosaicalGovernance đã được deploy
+const governanceAddress = "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707"; // Giả sử đây là địa chỉ của contract
+const MosaicalGovernance = await ethers.getContractFactory("MosaicalGovernance"); // Lấy ContractFactory
+const governance = MosaicalGovernance.attach(governanceAddress); // Tương tác với contract đã triển khai
+```
+
+**Trường hợp 2: Bạn đang cố gắng triển khai một contract và nhầm lẫn tham số `overrides` với một tham số khác.**
+
+Khi triển khai một contract, hàm `deploy` của `ContractFactory` nhận các đối số khởi tạo của contract và sau đó là một đối tượng `overrides` tùy chọn.
+
+Cấu trúc gọi thông thường sẽ là:
+
+```javascript
+const myContract = await MyContractFactory.deploy(constructorArg1, constructorArg2, { gasLimit: 3000000 });
+```
+
+Hãy kiểm tra dòng 50 trong `test/MosaicalMVP.test.js`. Nó có thể trông giống như sau:
+
+```javascript
+// Dòng gây lỗi (ví dụ)
+governance = await MosaicalGovernance.deploy(some_address_variable); // some_address_variable có thể chứa "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707"
+```
+
+Hoặc:
+
+```javascript
+// Dòng gây lỗi (ví dụ)
+governance = await MosaicalGovernance.deploy("0x5FC8d32690cc91D4c39d9d3abcBD16989F875707"); // Truyền trực tiếp địa chỉ
+```
+
+**Giải pháp đề xuất:**
+
+1.  **Xác định chính xác bạn muốn làm gì:**
+    * **Bạn muốn deploy một instance mới của `MosaicalGovernance`?** Nếu vậy, hãy đảm bảo bạn chỉ truyền các đối số khởi tạo của contract (nếu có), và sau đó là đối tượng `overrides` nếu cần.
+    * **Bạn muốn tương tác với một instance `MosaicalGovernance` đã được deploy ở đâu đó?** Nếu vậy, bạn cần sử dụng `attach()` hoặc `connect()` với địa chỉ của contract đó.
+
+2.  **Chỉnh sửa dòng 50 trong `test/MosaicalMVP.test.js`:**
+
+    **Nếu bạn đang deploy `MosaicalGovernance` và nó không có đối số khởi tạo:**
+
+    ```javascript
+    governance = await MosaicalGovernance.deploy();
+    ```
+
+    **Nếu bạn đang deploy `MosaicalGovernance` và nó có đối số khởi tạo (ví dụ: `_someParam`):**
+
+    ```javascript
+    governance = await MosaicalGovernance.deploy(someValueFor_someParam);
+    ```
+
+    **Nếu bạn đang deploy `MosaicalGovernance` và bạn muốn thêm `overrides`:**
+
+    ```javascript
+    governance = await MosaicalGovernance.deploy(constructorArg1, constructorArg2, { gasLimit: 5000000 });
+    ```
+
+    **Nếu bạn muốn tương tác với một contract đã được triển khai với địa chỉ `0x5FC8d32690cc91D4c39d9d3abcBD16989F875707`:**
+
+    ```javascript
+    const MosaicalGovernance = await ethers.getContractFactory("MosaicalGovernance");
+    governance = MosaicalGovernance.attach("0x5FC8d32690cc91D4c39d9d3abcBD16989F875707");
+    ```
+
+**Ví dụ về một `beforeEach` hook trong Hardhat test với deploy contract:**
+
+```javascript
+// test/MosaicalMVP.test.js
+const { ethers } = require("hardhat");
+const { expect } = require("chai");
+
+describe("Mosaical MVP Test Suite", function () {
+    let MosaicalGovernance;
+    let governance;
+    let owner;
+    let addr1;
+    let addr2;
+
+    beforeEach(async function () {
+        [owner, addr1, addr2] = await ethers.getSigners();
+
+        // Lấy ContractFactory cho MosaicalGovernance
+        MosaicalGovernance = await ethers.getContractFactory("MosaicalGovernance");
+
+        // *************** Dòng này cần được kiểm tra và chỉnh sửa ***************
+        // Triển khai contract MosaicalGovernance
+        // Nếu contract không có constructor arguments:
+        governance = await MosaicalGovernance.deploy();
+
+        // Nếu contract có constructor arguments, ví dụ: MosaicalGovernance(address initialOwner)
+        // governance = await MosaicalGovernance.deploy(owner.address);
+
+        // Đợi cho đến khi contract được deploy hoàn toàn
+        await governance.waitForDeployment();
+        // ********************************************************************
+    });
+
+    // ... các test cases khác ...
+});
+```
+
+Hãy kiểm tra kỹ dòng 50 trong file `test/MosaicalMVP.test.js` của bạn và điều chỉnh nó theo một trong các trường hợp trên để giải quyết lỗi `TypeError: invalid overrides parameter`.
