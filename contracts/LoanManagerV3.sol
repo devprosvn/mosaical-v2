@@ -6,9 +6,13 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 interface INFTVault {
-    function deposits(address collection, uint256 tokenId) external view returns (address owner);
+    function deposits(address collection, uint256 tokenId) external view returns (address);
     function getMaxLTV(address collection, uint256 tokenId) external view returns (uint256);
-    function oracle() external view returns (address);
+    function oracle() external view returns (IGameFiOracle);
+}
+
+interface IGameFiOracle {
+    function getFloorPrice(address collection) external view returns (uint256);
 }
 
 interface IDPOToken {
