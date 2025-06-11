@@ -67,7 +67,7 @@ async function deploy() {
         await governance.waitForDeployment();
         console.log('MosaicalGovernance deployed to:', await governance.getAddress());
 
-        // Deploy LoanManagerV3 and DPOTokenV3
+        // Deploy DPOTokenV3
         const DPOTokenV3 = JSON.parse(fs.readFileSync(
             path.join(contractsPath, 'DPOTokenV3.sol/DPOTokenV3.json')
         ));
@@ -76,6 +76,7 @@ async function deploy() {
         await dpoToken.waitForDeployment();
         console.log('DPOTokenV3 deployed to:', await dpoToken.getAddress());
 
+        // Deploy LoanManagerV3
         const LoanManagerV3 = JSON.parse(fs.readFileSync(
             path.join(contractsPath, 'LoanManagerV3.sol/LoanManagerV3.json')
         ));
