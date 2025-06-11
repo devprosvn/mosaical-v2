@@ -24,7 +24,7 @@ describe("Mosaical MVP Test Suite", function () {
 
     // Deploy Core Contracts
     const MosaicalGovernance = await ethers.getContractFactory("MosaicalGovernance");
-    const governanceContract = await MosaicalGovernance.deploy(governanceToken.address);
+    governance = await MosaicalGovernance.deploy(governanceToken.address);
 
     const GameFiOracleV3 = await ethers.getContractFactory("GameFiOracleV3");
     oracle = await GameFiOracleV3.deploy();
@@ -63,55 +63,41 @@ describe("Mosaical MVP Test Suite", function () {
   });
 
   describe("Governance System", function () {
-    it("Should create and execute proposals", async function () {
+    it("Should create proposals", async function () {
       // Mint governance tokens
       await governanceToken.mint(admin.address, ethers.utils.parseEther("2000000"));
 
-      // Create proposal to update risk tier
-      const targets = [nftVault.address];
-      const values = [0];
-      const calldatas = [
-        nftVault.interface.encodeFunctionData("setCollectionRiskTier", [
-          collectionAddress, 1
-        ])
-      ];
-      const description = "Update collection risk tier to 1";
-
-      const tx = await governanceContract.connect(admin).propose(
-        targets, values, calldatas, description
+      // Create proposal
+      const tx = await governance.connect(admin).createProposal(
+        "Update collection risk tier",
+        "Proposal to update risk tier to 1",
+        1, // COLLECTION_ADDITION
+        "0x"
       );
       const receipt = await tx.wait();
 
       const event = receipt.events.find(e => e.event === "ProposalCreated");
       expect(event).to.not.be.undefined;
-      expect(event.args.id).to.equal(1);
+      expect(event.args.proposalId).to.equal(1);
     });
 
     it("Should handle voting process", async function () {
       await governanceToken.mint(admin.address, ethers.utils.parseEther("2000000"));
 
       // Create proposal
-      const targets = [nftVault.address];
-      const values = [0];
-      const calldatas = [
-        nftVault.interface.encodeFunctionData("setCollectionRiskTier", [
-          collectionAddress, 1
-        ])
-      ];
-
-      await governanceContract.connect(admin).propose(
-        targets, values, calldatas, "Test proposal"
+      await governance.connect(admin).createProposal(
+        "Test proposal",
+        "Test proposal description",
+        0, // PARAMETER_CHANGE
+        "0x"
       );
 
-      // Skip to voting period
-      await time.increase(time.duration.days(2));
+      // Vote on proposal
+      await governance.connect(admin).vote(1, 1); // VoteChoice.FOR
 
-      // Vote
-      await governanceContract.connect(admin).castVote(1, true);
-
-      const receipt = await governanceContract.receipts(1, admin.address);
-      expect(receipt.hasVoted).to.be.true;
-      expect(receipt.support).to.be.true;
+      const userVote = await governance.getUserVote(1, admin.address);
+      expect(userVote.hasVoted).to.be.true;
+      expect(userVote.choice).to.equal(1); // FOR
     });
   });
 
