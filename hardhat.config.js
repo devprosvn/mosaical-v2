@@ -22,7 +22,10 @@ module.exports = {
       timeout: 60000
     },
     hardhat: {
-      chainId: 1337
+      chainId: 1337,
+      accounts: {
+        accountsBalance: "10000000000000000000000000" // Very large balance for local testing
+      }
     }
   },
   paths: {
