@@ -52,7 +52,7 @@ describe("Mosaical MVP Test Suite", function () {
 
     // Set oracle prices
     await oracle.updateFloorPrice(collectionAddress, ethers.parseEther("10"));
-    await oracle.updateUtilityScore(collectionAddress, 1, 150);
+    await oracle.updateUtilityScore(collectionAddress, 1, 85); // Valid score between 1-100
 
     // Mint NFTs
     await gameNFT.mint(borrower.address, 1);
@@ -367,7 +367,7 @@ describe("Mosaical MVP Test Suite", function () {
       // Check that floor price is set correctly
       expect(price).to.equal(ethers.parseEther("10"));
       // Check that utility score is set correctly  
-      expect(utilityScore).to.equal(150);
+      expect(utilityScore).to.equal(85);
     });
 
     it("Should track price history and volatility", async function () {
