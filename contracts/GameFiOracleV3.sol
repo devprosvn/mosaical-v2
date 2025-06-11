@@ -3,11 +3,11 @@
 pragma solidity ^0.8.21;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 contract GameFiOracleV3 is Ownable, ReentrancyGuard {
-    using SafeMath for uint256;
+    using Math for uint256;
     
     struct PriceData {
         uint256 floorPrice;
@@ -160,7 +160,7 @@ contract GameFiOracleV3 is Ownable, ReentrancyGuard {
         PriceData memory data = priceData[collection];
         
         if (!data.isActive) return 0;
-        if (block.timestamp.sub(data.lastUpdate) > PRICE_STALENESS_THRESHOLD) return 0;
+        if (block.timestamp - data.lastUpdate > PRICE_STALENESS_THRESHOLD) return 0;
         
         return data.floorPrice;
     }
@@ -177,7 +177,7 @@ contract GameFiOracleV3 is Ownable, ReentrancyGuard {
             return MIN_UTILITY_SCORE;
         }
         
-        if (block.timestamp.sub(data.lastUpdate) > UTILITY_STALENESS_THRESHOLD) {
+        if (block.timestamp - data.lastUpdate > UTILITY_STALENESS_THRESHOLD) {
             return MIN_UTILITY_SCORE;
         }
         
@@ -211,7 +211,7 @@ contract GameFiOracleV3 is Ownable, ReentrancyGuard {
         floorPrice = data.floorPrice;
         lastUpdate = data.lastUpdate;
         isActive = data.isActive;
-        isStale = block.timestamp.sub(data.lastUpdate) > PRICE_STALENESS_THRESHOLD;
+        isStale = block.timestamp - data.lastUpdate > PRICE_STALENESS_THRESHOLD;
     }
     
     function getUtilityInfo(address collection, uint256 tokenId) external view returns (
@@ -224,7 +224,7 @@ contract GameFiOracleV3 is Ownable, ReentrancyGuard {
         score = data.isActive ? data.score : _calculateDefaultUtilityScore(collection);
         lastUpdate = data.lastUpdate;
         isActive = data.isActive;
-        isStale = data.isActive && block.timestamp.sub(data.lastUpdate) > UTILITY_STALENESS_THRESHOLD;
+        isStale = data.isActive && block.timestamp - data.lastUpdate > UTILITY_STALENESS_THRESHOLD;
     }
     
     function getCollectionHealth(address collection) external view returns (
@@ -240,16 +240,16 @@ contract GameFiOracleV3 is Ownable, ReentrancyGuard {
         }
         
         // Calculate health based on various factors
-        uint256 volumeScore = metrics.volume24h > 1 ether ? 25 : (metrics.volume24h.mul(25).div(1 ether));
-        uint256 holderScore = metrics.holders > 1000 ? 25 : (metrics.holders.mul(25).div(1000));
-        uint256 liquidityScore = metrics.listingCount > 100 ? 25 : (metrics.listingCount.mul(25).div(100));
-        uint256 holdScore = metrics.avgHoldTime > 30 days ? 25 : (metrics.avgHoldTime.mul(25).div(30 days));
+        uint256 volumeScore = metrics.volume24h > 1 ether ? 25 : (metrics.volume24h * 25 / 1 ether);
+        uint256 holderScore = metrics.holders > 1000 ? 25 : (metrics.holders * 25 / 1000);
+        uint256 liquidityScore = metrics.listingCount > 100 ? 25 : (metrics.listingCount * 25 / 100);
+        uint256 holdScore = metrics.avgHoldTime > 30 days ? 25 : (metrics.avgHoldTime * 25 / 30 days);
         
-        healthScore = volumeScore.add(holderScore).add(liquidityScore).add(holdScore);
+        healthScore = volumeScore + holderScore + liquidityScore + holdScore;
         if (healthScore > 100) healthScore = 100;
         
         isLiquid = metrics.listingCount > 10 && metrics.volume24h > 0.1 ether;
-        hasRecentActivity = block.timestamp.sub(price.lastUpdate) < 1 hours;
+        hasRecentActivity = block.timestamp - price.lastUpdate < 1 hours;
     }
     
     // Internal functions
@@ -262,15 +262,15 @@ contract GameFiOracleV3 is Ownable, ReentrancyGuard {
         uint256 baseScore = 30;
         
         // Bonus for high holder count (indicates popularity)
-        if (metrics.holders > 5000) baseScore = baseScore.add(20);
-        else if (metrics.holders > 1000) baseScore = baseScore.add(10);
+        if (metrics.holders > 5000) baseScore = baseScore + 20;
+        else if (metrics.holders > 1000) baseScore = baseScore + 10;
         
         // Bonus for trading activity
-        if (metrics.volume24h > 10 ether) baseScore = baseScore.add(15);
-        else if (metrics.volume24h > 1 ether) baseScore = baseScore.add(5);
+        if (metrics.volume24h > 10 ether) baseScore = baseScore + 15;
+        else if (metrics.volume24h > 1 ether) baseScore = baseScore + 5;
         
         // Bonus for liquidity
-        if (metrics.listingCount > 100) baseScore = baseScore.add(10);
+        if (metrics.listingCount > 100) baseScore = baseScore + 10;
         
         return baseScore > MAX_UTILITY_SCORE ? MAX_UTILITY_SCORE : baseScore;
     }
