@@ -23,14 +23,14 @@ describe("Mosaical MVP Test Suite", function () {
     governanceToken = await GovernanceToken.deploy("Mosaical Governance", "MSCLGOV");
     await governanceToken.waitForDeployment();
 
-    // Deploy Core Contracts
-    const MosaicalGovernance = await ethers.getContractFactory("MosaicalGovernance");
-    governance = await MosaicalGovernance.deploy(await governanceToken.getAddress());
-    await governance.waitForDeployment();
-
+    // Deploy Core Contracts in correct order
     const GameFiOracleV3 = await ethers.getContractFactory("GameFiOracleV3");
     oracle = await GameFiOracleV3.deploy();
     await oracle.waitForDeployment();
+
+    const MosaicalGovernance = await ethers.getContractFactory("MosaicalGovernance");
+    governance = await MosaicalGovernance.deploy(await governanceToken.getAddress());
+    await governance.waitForDeployment();
 
     const NFTVaultV3 = await ethers.getContractFactory("NFTVaultV3");
     nftVault = await NFTVaultV3.deploy(await oracle.getAddress());
@@ -49,10 +49,6 @@ describe("Mosaical MVP Test Suite", function () {
       await dpoToken.getAddress()
     );
     await loanManager.waitForDeployment();
-
-    const MosaicalSagaBridge = await ethers.getContractFactory("MosaicalSagaBridge");
-    bridge = await MosaicalSagaBridge.deploy("0x1234567890123456789012345678901234567890"); // Mock LayerZero endpoint
-    await bridge.waitForDeployment();
 
     // Setup test data
     await nftVault.addSupportedCollection(collectionAddress);
@@ -545,11 +541,11 @@ describe("Mosaical MVP Test Suite", function () {
       // Test that our contracts are configured for Saga chainlet
       const expectedChainletId = "mosaical_2745549204473000-1";
       expect(chainletId).to.equal(expectedChainletId);
-      
+
       // Verify genesis account has proper balance in test environment
       const balance = await ethers.provider.getBalance(admin.address);
       expect(balance).to.be.gt(0);
-      
+
       // Test cross-chainlet compatibility
       const sagaNumericId = 2745549204473000;
       await bridge.addSupportedChainlet(sagaNumericId);
