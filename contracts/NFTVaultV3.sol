@@ -56,17 +56,13 @@ contract NFTVaultV3 is Ownable, ReentrancyGuard {
     event CollectionAdded(address indexed collection, uint256 maxLTV, uint256 liquidationThreshold);
     event Liquidation(address indexed collection, uint256 indexed tokenId, uint256 debtAmount, uint256 salePrice);
 
-    constructor(address _oracle) {
-        oracle = IGameFiOracle(_oracle);
-    }
-
     // Admin functions
     function addSupportedCollection(
         address collection,
         uint256 maxLTV,
         uint256 liquidationThreshold,
         uint256 baseInterestRate
-    ) external onlyOwner {
+    ) public onlyOwner {
         require(maxLTV <= 8000, "Max LTV too high"); // Max 80%
         require(liquidationThreshold >= maxLTV, "Invalid liquidation threshold");
 
@@ -80,8 +76,12 @@ contract NFTVaultV3 is Ownable, ReentrancyGuard {
         emit CollectionAdded(collection, maxLTV, liquidationThreshold);
     }
 
-    function addSupportedCollection(address collection) external onlyOwner {
+    function addSupportedCollection(address collection) public onlyOwner {
         addSupportedCollection(collection, 7000, 8500, 500); // 70% LTV, 85% liquidation, 5% interest
+    }
+
+    constructor(address _oracle) {
+        oracle = IGameFiOracle(_oracle);
     }
 
     function updateOracle(address _oracle) external onlyOwner {
