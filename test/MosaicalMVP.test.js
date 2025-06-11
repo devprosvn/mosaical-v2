@@ -187,8 +187,8 @@ describe("Mosaical MVP Test Suite", function () {
       );
 
       // Verify loan created
-      const loan = await loanManager.loans(borrower.address, collectionAddress, 1);
-      expect(loan).to.equal(borrowAmount);
+      const loanDetails = await loanManager.loanData(borrower.address, collectionAddress, 1);
+      expect(loanDetails.principal).to.equal(borrowAmount);
 
       // Verify health factor
       const health = await loanManager.loanHealthFactors(borrower.address, collectionAddress, 1);
@@ -248,8 +248,8 @@ describe("Mosaical MVP Test Suite", function () {
       );
 
       // Verify loan closed
-      const loanAfter = await loanManager.loans(borrower.address, collectionAddress, 1);
-      expect(loanAfter).to.equal(0);
+      const loanAfterRepay = await loanManager.loanData(borrower.address, collectionAddress, 1);
+      expect(loanAfterRepay.isActive).to.be.false;
     });
   });
 
@@ -623,9 +623,8 @@ describe("Mosaical MVP Test Suite", function () {
 
       // 9. Repay loan
       await loanManager.updateLoanInterest(borrower.address, collectionAddress, 1);
-      const loan = await loanManager.loans(borrower.address, collectionAddress, 1);
       const loanData = await loanManager.loanData(borrower.address, collectionAddress, 1);
-      const totalOwed = loan + loanData.accruedInterest;
+      const totalOwed = loanData.principal + loanData.accruedInterest;
 
       await loanManager.connect(borrower).repay(
         collectionAddress,
@@ -639,7 +638,8 @@ describe("Mosaical MVP Test Suite", function () {
 
       // Verify final state
       expect(await gameNFT.ownerOf(1)).to.equal(borrower.address);
-      expect(await loanManager.loans(borrower.address, collectionAddress, 1)).to.equal(0);
+      const finalLoanState = await loanManager.loanData(borrower.address, collectionAddress, 1);
+      expect(finalLoanState.isActive).to.be.false;
     });
   });
   });
