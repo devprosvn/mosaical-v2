@@ -159,8 +159,8 @@ describe("Mosaical MVP Test Suite", function () {
 
       // Fund loan manager
       await admin.sendTransaction({
-        to: loanManager.address,
-        value: ethers.parseEther("100")
+        to: await loanManager.getAddress(),
+        value: ethers.parseEther("50")
       });
 
       const borrowAmount = ethers.parseEther("5");
@@ -202,8 +202,8 @@ describe("Mosaical MVP Test Suite", function () {
       await nftVault.connect(borrower).depositNFT(collectionAddress, 1);
 
       await admin.sendTransaction({
-        to: loanManager.address,
-        value: ethers.parseEther("100")
+        to: await loanManager.getAddress(),
+        value: ethers.parseEther("50")
       });
 
       const borrowAmount = ethers.parseEther("5");
@@ -244,8 +244,8 @@ describe("Mosaical MVP Test Suite", function () {
       await nftVault.connect(borrower).depositNFT(collectionAddress, 1);
 
       await admin.sendTransaction({
-        to: loanManager.address,
-        value: ethers.parseEther("100")
+        to: await loanManager.getAddress(),
+        value: ethers.parseEther("50")
       });
 
       const borrowAmount = ethers.parseEther("5");
@@ -273,8 +273,8 @@ describe("Mosaical MVP Test Suite", function () {
       await nftVault.connect(borrower).depositNFT(collectionAddress, 1);
 
       await admin.sendTransaction({
-        to: loanManager.address,
-        value: ethers.parseEther("100")
+        to: await loanManager.getAddress(),
+        value: ethers.parseEther("50")
       });
 
       await loanManager.connect(borrower).borrow(
@@ -325,8 +325,8 @@ describe("Mosaical MVP Test Suite", function () {
       await nftVault.connect(borrower).depositNFT(collectionAddress, 1);
 
       await admin.sendTransaction({
-        to: loanManager.address,
-        value: ethers.parseEther("100")
+        to: await loanManager.getAddress(),
+        value: ethers.parseEther("50")
       });
 
       await loanManager.connect(borrower).borrow(
@@ -476,8 +476,8 @@ describe("Mosaical MVP Test Suite", function () {
       await nftVault.connect(borrower).depositNFT(collectionAddress, 1);
 
       await admin.sendTransaction({
-        to: loanManager.address,
-        value: ethers.parseEther("100")
+        to: await loanManager.getAddress(),
+        value: ethers.parseEther("50")
       });
 
       // Try to borrow more than max LTV
@@ -499,8 +499,8 @@ describe("Mosaical MVP Test Suite", function () {
 
       // 2. Fund loan manager
       await admin.sendTransaction({
-        to: loanManager.address,
-        value: ethers.parseEther("100")
+        to: await loanManager.getAddress(),
+        value: ethers.parseEther("50")
       });
 
       // 3. Create loan
