@@ -15,14 +15,14 @@ module.exports = {
     }
   },
   networks: {
-    saga: {
+    devpros: {
       url: process.env.RPC_URL || "https://devpros-2749656616387000-1.jsonrpc.sagarpc.io",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 2749656616387000,
       gasPrice: "auto",
       timeout: 60000
     },
-    devpros: {
+    saga: {
       url: "https://devpros-2749656616387000-1.jsonrpc.sagarpc.io",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 2749656616387000,
@@ -38,12 +38,12 @@ module.exports = {
   },
   etherscan: {
     apiKey: {
-      saga: "abc",
-      devpros: "abc"
+      devpros: "abc",
+      saga: "abc"
     },
     customChains: [
       {
-        network: "saga",
+        network: "devpros", 
         chainId: 2749656616387000,
         urls: {
           apiURL: "https://devpros-2749656616387000-1.sagaexplorer.io/api",
@@ -51,7 +51,7 @@ module.exports = {
         }
       },
       {
-        network: "devpros", 
+        network: "saga",
         chainId: 2749656616387000,
         urls: {
           apiURL: "https://devpros-2749656616387000-1.sagaexplorer.io/api",

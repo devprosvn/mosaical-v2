@@ -33,7 +33,7 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd src && node index.js deploy"
+args = "npx hardhat run scripts/deploy.js --network devpros"
 
 [[workflows.workflow]]
 name = "Verify Contracts"
@@ -43,3 +43,21 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd src && node index.js verify"
+
+[[workflows.workflow]]
+name = "Deploy with JSON"
+author = 42118327
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npx hardhat run scripts/deploy-with-json.js --network devpros"
+
+[[workflows.workflow]]
+name = "Run Tests"
+author = 42118327
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npx hardhat test"
