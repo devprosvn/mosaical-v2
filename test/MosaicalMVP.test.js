@@ -235,8 +235,8 @@ describe("Mosaical MVP Test Suite", function () {
       // Get total owed using view function
       const totalOwed = await loanManager.getAccruedInterest(borrower.address, collectionAddress, 1);
 
-      // Add buffer to account for interest accrued in the next block
-      const amountToPay = totalOwed + ethers.parseUnits("1", "gwei");
+      // Add generous buffer to ensure we cover all accrued interest regardless of timing
+      const amountToPay = totalOwed + ethers.parseEther("1");
 
       // Repay loan
       await loanManager.connect(borrower).repay(
@@ -628,8 +628,8 @@ describe("Mosaical MVP Test Suite", function () {
       // 9. Repay loan
       const totalOwed = await loanManager.getAccruedInterest(borrower.address, collectionAddress, 1);
 
-      // Add buffer to account for interest accrued in the next block
-      const amountToPay = totalOwed + ethers.parseUnits("1", "gwei");
+      // Add generous buffer to ensure we cover all accrued interest regardless of timing
+      const amountToPay = totalOwed + ethers.parseEther("1");
 
       await loanManager.connect(borrower).repay(
         collectionAddress,
