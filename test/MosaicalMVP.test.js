@@ -232,12 +232,8 @@ describe("Mosaical MVP Test Suite", function () {
       // Advance time for interest accrual
       await time.increase(time.duration.days(30));
 
-      // Update interest
-      await loanManager.updateLoanInterest(borrower.address, collectionAddress, 1);
-
-      // Get total owed
-      const loanData = await loanManager.loanData(borrower.address, collectionAddress, 1);
-      const totalOwed = borrowAmount + loanData.accruedInterest;
+      // Get total owed using view function
+      const totalOwed = await loanManager.getAccruedInterest(borrower.address, collectionAddress, 1);
 
       // Repay loan
       await loanManager.connect(borrower).repay(
@@ -628,9 +624,7 @@ describe("Mosaical MVP Test Suite", function () {
       await dpoToken.connect(lender).claimInterest(collectionAddress, 1);
 
       // 9. Repay loan
-      await loanManager.updateLoanInterest(borrower.address, collectionAddress, 1);
-      const loanData = await loanManager.loanData(borrower.address, collectionAddress, 1);
-      const totalOwed = loanData.principal + loanData.accruedInterest;
+      const totalOwed = await loanManager.getAccruedInterest(borrower.address, collectionAddress, 1);
 
       await loanManager.connect(borrower).repay(
         collectionAddress,
