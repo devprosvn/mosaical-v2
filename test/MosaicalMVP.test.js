@@ -637,4 +637,5 @@ describe("Mosaical MVP Test Suite", function () {
       expect(await loanManager.loans(borrower.address, collectionAddress, 1)).to.equal(0);
     });
   });
+  });
 });
