@@ -80,7 +80,7 @@ contract NFTVaultV3 is Ownable, ReentrancyGuard {
         addSupportedCollection(collection, 7000, 8500, 500); // 70% LTV, 85% liquidation, 5% interest
     }
 
-    constructor(address _oracle) {
+    constructor(address _oracle) Ownable(msg.sender) {
         oracle = IGameFiOracle(_oracle);
     }
 

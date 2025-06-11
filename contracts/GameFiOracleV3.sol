@@ -52,7 +52,7 @@ contract GameFiOracleV3 is Ownable, ReentrancyGuard {
         _;
     }
     
-    constructor() {
+    constructor() Ownable(msg.sender) {
         authorizedUpdaters[msg.sender] = true;
     }
     
@@ -187,7 +187,7 @@ contract GameFiOracleV3 is Ownable, ReentrancyGuard {
     function isActiveAsset(address collection, uint256 tokenId) external view returns (bool) {
         // Check if we have recent price data
         PriceData memory price = priceData[collection];
-        if (!price.isActive || block.timestamp.sub(price.lastUpdate) > PRICE_STALENESS_THRESHOLD) {
+        if (!price.isActive || block.timestamp - price.lastUpdate > PRICE_STALENESS_THRESHOLD) {
             return false;
         }
         

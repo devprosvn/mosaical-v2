@@ -75,7 +75,7 @@ contract MosaicalGovernance is Ownable, ReentrancyGuard {
     event ProposalCancelled(uint256 indexed proposalId);
     event DelegateChanged(address indexed delegator, address indexed newDelegate);
     
-    constructor(address _governanceToken) {
+    constructor(address _governanceToken) Ownable(msg.sender) {
         governanceToken = IERC20(_governanceToken);
     }
     
