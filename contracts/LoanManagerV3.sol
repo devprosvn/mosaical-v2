@@ -94,7 +94,7 @@ contract LoanManagerV3 is Ownable, ReentrancyGuard {
 
         nftToLoan[msg.sender][collection][tokenId] = loanId;
 
-        emit LoanCreated(msg.sender, collection, amount);
+        emit LoanCreated(msg.sender, collection, tokenId, amount);
         return loanId;
     }
 
@@ -107,7 +107,7 @@ contract LoanManagerV3 is Ownable, ReentrancyGuard {
         loan.isActive = false;
         loan.isRepaid = true;
 
-        emit LoanRepaid(loanId, msg.sender);
+        emit LoanRepaid(loan.borrower, loan.collection, loan.tokenId, loan.amount);
     }
 
     function calculateDynamicInterestRate(address /* collection */, uint256 /* tokenId */) external pure returns (uint256) {
@@ -116,7 +116,7 @@ contract LoanManagerV3 is Ownable, ReentrancyGuard {
     }
 
     function borrow(address collection, uint256 tokenId, uint256 amount) external nonReentrant {
-        require(nftVault.deposits(collection, tokenId).owner == msg.sender, "Not your NFT");
+        require(nftVault.deposits(collection, tokenId) == msg.sender, "Not your NFT");
         require(!loanData[msg.sender][collection][tokenId].isActive, "Active loan exists");
 
         uint256 maxBorrow = nftVault.getMaxLTV(collection, tokenId) * nftVault.oracle().getFloorPrice(collection) / 10000;
