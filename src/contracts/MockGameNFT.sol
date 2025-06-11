@@ -24,13 +24,13 @@ contract MockGameNFT is ERC721, Ownable {
     }
 
     function exists(uint256 tokenId) external view returns (bool) {
-        return _exists(tokenId);
+        return _ownerOf(tokenId) != address(0);
     }
 
-    /// @notice Trả về URI theo chuẩn CoinGecko NFT API
+    /// @notice Trả về URI theo chuẩn CoinGecko NFT API  
     /// @dev Endpoint: GET /nfts/{asset_platform}/contract/{contract_address}?token_ids[]=tokenId
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
-        require(_exists(tokenId), "Token does not exist");
+        require(_ownerOf(tokenId) != address(0), "Token does not exist");
 
         // Định dạng URL:
         // https://api.coingecko.com/api/v3/nfts/ethereum/contract/0x1234...abcd?token_ids%5B%5D=1
