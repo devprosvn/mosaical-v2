@@ -1,0 +1,75 @@
+~/workspace$ npx hardhat test
+Warning: Unused function parameter. Remove or comment out the variable name to silence this warning.
+  --> contracts/LoanManagerV3.sol:81:43:
+   |
+81 |     function calculateDynamicInterestRate(address collection, uint256 tokenId) external pure returns (uint256) {
+   |                                           ^^^^^^^^^^^^^^^^^^
+
+
+Warning: Unused function parameter. Remove or comment out the variable name to silence this warning.
+  --> contracts/LoanManagerV3.sol:81:63:
+   |
+81 |     function calculateDynamicInterestRate(address collection, uint256 tokenId) external pure returns (uint256) {
+   |                                                               ^^^^^^^^^^^^^^^
+
+
+Compiled 3 Solidity files successfully (evm target: paris).
+
+
+  Mosaical MVP Test Suite
+    Governance System
+      ✔ Should create proposals
+      ✔ Should handle voting process
+    NFT Vault System
+      ✔ Should deposit NFT and calculate correct LTV
+      ✔ Should handle risk tier updates
+      ✔ Should prevent unauthorized withdrawals
+    Loan Manager System
+      1) Should create loan with correct parameters
+      2) Should calculate dynamic interest rates
+      3) Should handle loan repayment correctly
+    DPO Token System
+      4) Should mint DPO tokens on loan creation
+      5) "before each" hook for "Should handle DPO token trading"
+
+
+  5 passing (2s)
+  5 failing
+
+  1) Mosaical MVP Test Suite
+       Loan Manager System
+         Should create loan with correct parameters:
+     ProviderError: Contract creation without any data provided
+      at EdrProviderWrapper.request (/home/runner/workspace/node_modules/hardhat/src/internal/hardhat-network/provider/provider.ts:368:19)
+      at HardhatEthersSigner.sendTransaction (/home/runner/workspace/node_modules/@nomicfoundation/hardhat-ethers/src/signers.ts:181:18)
+      at Context.<anonymous> (/home/runner/workspace/test/MosaicalMVP.test.js:161:7)
+
+  2) Mosaical MVP Test Suite
+       Loan Manager System
+         Should calculate dynamic interest rates:
+     TypeError: loanManager.setInterestRateModel is not a function
+      at Context.<anonymous> (test/MosaicalMVP.test.js:183:25)
+      at processImmediate (node:internal/timers:483:21)
+
+  3) Mosaical MVP Test Suite
+       Loan Manager System
+         Should handle loan repayment correctly:
+     ProviderError: Contract creation without any data provided
+      at EdrProviderWrapper.request (/home/runner/workspace/node_modules/hardhat/src/internal/hardhat-network/provider/provider.ts:368:19)
+      at HardhatEthersSigner.sendTransaction (/home/runner/workspace/node_modules/@nomicfoundation/hardhat-ethers/src/signers.ts:181:18)
+      at Context.<anonymous> (/home/runner/workspace/test/MosaicalMVP.test.js:204:7)
+
+  4) Mosaical MVP Test Suite
+       DPO Token System
+         Should mint DPO tokens on loan creation:
+     ProviderError: Contract creation without any data provided
+      at EdrProviderWrapper.request (/home/runner/workspace/node_modules/hardhat/src/internal/hardhat-network/provider/provider.ts:368:19)
+      at HardhatEthersSigner.sendTransaction (/home/runner/workspace/node_modules/@nomicfoundation/hardhat-ethers/src/signers.ts:181:18)
+      at Context.<anonymous> (/home/runner/workspace/test/MosaicalMVP.test.js:246:7)
+
+  5) Mosaical MVP Test Suite
+       "before each" hook for "Should handle DPO token trading":
+     ProviderError: Sender doesn't have enough funds to send tx. The max upfront cost is: 1000030000000480000000 and the sender's balance is: 999888010205008295634.
+      at EdrProviderWrapper.request (/home/runner/workspace/node_modules/hardhat/src/internal/hardhat-network/provider/provider.ts:368:19)
+      at HardhatEthersSigner.sendTransaction (/home/runner/workspace/node_modules/@nomicfoundation/hardhat-ethers/src/signers.ts:181:18)
+      at Context.<anonymous> (/home/runner/workspace/test/MosaicalMVP.test.js:65:5)
