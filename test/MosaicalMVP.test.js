@@ -120,8 +120,10 @@ describe("Mosaical MVP Test Suite", function () {
       await gameNFT.connect(borrower).approve(await nftVault.getAddress(), 1);
       await nftVault.connect(borrower).depositNFT(collectionAddress, 1);
 
-      // Verify deposit
-      expect(await nftVault.deposits(borrower.address, collectionAddress, 1)).to.be.true;
+      // Verify deposit - check the deposit struct
+      const deposit = await nftVault.deposits(collectionAddress, 1);
+      expect(deposit.owner).to.equal(borrower.address);
+      expect(deposit.isActive).to.be.true;
       expect(await gameNFT.ownerOf(1)).to.equal(await nftVault.getAddress());
 
       // Check max LTV calculation
@@ -131,7 +133,7 @@ describe("Mosaical MVP Test Suite", function () {
 
     it("Should handle risk tier updates", async function () {
       await nftVault.setCollectionRiskTier(collectionAddress, 1);
-      expect(await nftVault.collectionRiskTier(collectionAddress)).to.equal(1);
+      expect(await nftVault.collectionRiskTiers(collectionAddress)).to.equal(1);
 
       const riskModel = await nftVault.riskModels(1);
       expect(riskModel.baseLTV).to.equal(70);

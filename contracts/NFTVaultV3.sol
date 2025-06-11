@@ -42,14 +42,16 @@ contract NFTVaultV3 is Ownable, ReentrancyGuard {
     mapping(address => mapping(uint256 => Loan)) public loans;
     mapping(address => CollectionConfig) public collectionConfigs;
     mapping(address => uint256) public userETHBalances;
-    mapping(address => mapping(address => mapping(uint256 => DepositInfo))) public deposits;
     mapping(address => uint8) public collectionRiskTiers;
 
-    struct DepositInfo {
-        bool isDeposited;
-        uint256 timestamp;
-        uint256 ltv;
+    struct RiskModel {
+        uint256 baseLTV;
+        uint256 liquidationThreshold;
+        uint256 maxUtilityBonus;
+        uint256 minCollateralAmount;
     }
+
+    mapping(uint8 => RiskModel) public riskModels;
 
     // Constants
     uint256 public constant LIQUIDATION_PENALTY = 1000; // 10%
@@ -90,6 +92,13 @@ contract NFTVaultV3 is Ownable, ReentrancyGuard {
 
     constructor(address _oracle) Ownable(msg.sender) {
         oracle = IGameFiOracle(_oracle);
+        
+        // Initialize risk models
+        riskModels[1] = RiskModel(70, 80, 20, 1 ether);   // Tier 1: 70% LTV, 80% liquidation
+        riskModels[2] = RiskModel(65, 75, 15, 2 ether);   // Tier 2: 65% LTV, 75% liquidation  
+        riskModels[3] = RiskModel(60, 70, 10, 3 ether);   // Tier 3: 60% LTV, 70% liquidation
+        riskModels[4] = RiskModel(55, 65, 8, 5 ether);    // Tier 4: 55% LTV, 65% liquidation
+        riskModels[5] = RiskModel(50, 60, 5, 10 ether);   // Tier 5: 50% LTV, 60% liquidation
     }
 
     function updateOracle(address _oracle) external onlyOwner {
@@ -261,8 +270,20 @@ contract NFTVaultV3 is Ownable, ReentrancyGuard {
 
     function setCollectionRiskTier(address collection, uint8 tier) external onlyOwner {
         require(tier >= 1 && tier <= 5, "Invalid risk tier");
-        // Store risk tier for collection (implementation depends on your needs)
+        collectionRiskTiers[collection] = tier;
         emit CollectionRiskTierSet(collection, tier);
+    }
+
+    function getMaxLTV(address collection, uint256 tokenId) public view returns (uint256) {
+        uint8 riskTier = collectionRiskTiers[collection];
+        if (riskTier == 0) riskTier = 3; // Default to tier 3
+        
+        RiskModel memory model = riskModels[riskTier];
+        uint256 utilityScore = oracle.getUtilityScore(collection, tokenId);
+        
+        // Add utility bonus (max bonus defined in risk model)
+        uint256 bonus = (utilityScore * model.maxUtilityBonus) / 100;
+        return model.baseLTV + bonus;
     }
 
     // Events for admin functions
