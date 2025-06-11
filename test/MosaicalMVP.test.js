@@ -36,11 +36,13 @@ describe("Mosaical MVP Test Suite", function () {
     nftVault = await NFTVaultV3.deploy(await oracle.getAddress());
     await nftVault.waitForDeployment();
 
+    // Deploy DPO Token
     const DPOTokenV3 = await ethers.getContractFactory("DPOTokenV3");
     dpoToken = await DPOTokenV3.deploy();
 
+    // Deploy LoanManager
     const LoanManagerV3 = await ethers.getContractFactory("LoanManagerV3");
-    loanManager = await LoanManagerV3.deploy();
+    loanManager = await LoanManagerV3.deploy(await nftVault.getAddress(), await dpoToken.getAddress());
 
     const MosaicalSagaBridge = await ethers.getContractFactory("MosaicalSagaBridge");
     bridge = await MosaicalSagaBridge.deploy("0x1234567890123456789012345678901234567890"); // Mock LayerZero endpoint
@@ -196,7 +198,7 @@ describe("Mosaical MVP Test Suite", function () {
       // Setup loan
       await gameNFT.connect(borrower).approve(await nftVault.getAddress(), 1);
       await nftVault.connect(borrower).depositNFT(collectionAddress, 1);
-      
+
       await admin.sendTransaction({
         to: loanManager.address,
         value: ethers.parseEther("100")
@@ -238,7 +240,7 @@ describe("Mosaical MVP Test Suite", function () {
       // Setup loan
       await gameNFT.connect(borrower).approve(await nftVault.getAddress(), 1);
       await nftVault.connect(borrower).depositNFT(collectionAddress, 1);
-      
+
       await admin.sendTransaction({
         to: loanManager.address,
         value: ethers.parseEther("100")
@@ -267,7 +269,7 @@ describe("Mosaical MVP Test Suite", function () {
       // Setup loan and get DPO tokens
       await gameNFT.connect(borrower).approve(await nftVault.getAddress(), 1);
       await nftVault.connect(borrower).depositNFT(collectionAddress, 1);
-      
+
       await admin.sendTransaction({
         to: loanManager.address,
         value: ethers.parseEther("100")
@@ -319,7 +321,7 @@ describe("Mosaical MVP Test Suite", function () {
       // Setup with DPO tokens
       await gameNFT.connect(borrower).approve(await nftVault.getAddress(), 1);
       await nftVault.connect(borrower).depositNFT(collectionAddress, 1);
-      
+
       await admin.sendTransaction({
         to: loanManager.address,
         value: ethers.parseEther("100")

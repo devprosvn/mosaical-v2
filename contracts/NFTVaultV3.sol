@@ -42,6 +42,14 @@ contract NFTVaultV3 is Ownable, ReentrancyGuard {
     mapping(address => mapping(uint256 => Loan)) public loans;
     mapping(address => CollectionConfig) public collectionConfigs;
     mapping(address => uint256) public userETHBalances;
+    mapping(address => mapping(address => mapping(uint256 => DepositInfo))) public deposits;
+    mapping(address => uint8) public collectionRiskTiers;
+
+    struct DepositInfo {
+        bool isDeposited;
+        uint256 timestamp;
+        uint256 ltv;
+    }
 
     // Constants
     uint256 public constant LIQUIDATION_PENALTY = 1000; // 10%
