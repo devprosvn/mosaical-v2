@@ -33,7 +33,11 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd src && node index.js deploy"
+args = "npx hardhat compile"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node scripts/deploy-with-json.js"
 
 [[workflows.workflow]]
 name = "Verify Contracts"
