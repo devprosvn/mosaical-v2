@@ -154,7 +154,7 @@ contract LoanManagerV3 is Ownable, ReentrancyGuard {
         emit LoanCreated(msg.sender, collection, tokenId, amount);
     }
 
-    function repay(address collection, uint256 tokenId, uint256 amount) external payable nonReentrant {
+    function repay(address collection, uint256 tokenId) external payable nonReentrant {
         require(loanData[msg.sender][collection][tokenId].isActive, "No active loan");
 
         updateLoanInterest(msg.sender, collection, tokenId);
@@ -162,19 +162,20 @@ contract LoanManagerV3 is Ownable, ReentrancyGuard {
         LoanData storage loan = loanData[msg.sender][collection][tokenId];
         uint256 totalOwed = loan.principal + loan.accruedInterest;
 
-        require(msg.value >= amount, "Insufficient payment");
-        require(amount >= totalOwed, "Must repay full amount");
+        // The single, most important check: Did the user send enough value?
+        require(msg.value >= totalOwed, "Insufficient payment to cover full debt");
 
         // Close loan
         loan.isActive = false;
         loan.principal = 0;
+        loan.accruedInterest = 0; // Also clear the accrued interest
 
-        // Refund excess
-        if (msg.value > amount) {
-            payable(msg.sender).transfer(msg.value - amount);
+        // Refund excess payment
+        if (msg.value > totalOwed) {
+            payable(msg.sender).transfer(msg.value - totalOwed);
         }
 
-        emit LoanRepaid(msg.sender, collection, tokenId, amount);
+        emit LoanRepaid(msg.sender, collection, tokenId, totalOwed);
     }
 
     function updateLoanInterest(address borrower, address collection, uint256 tokenId) public {

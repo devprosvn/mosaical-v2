@@ -239,7 +239,6 @@ describe("Mosaical MVP Test Suite", function () {
       await loanManager.connect(borrower).repay(
         collectionAddress,
         1,
-        totalOwed,
         { value: totalOwed }
       );
 
@@ -629,7 +628,6 @@ describe("Mosaical MVP Test Suite", function () {
       await loanManager.connect(borrower).repay(
         collectionAddress,
         1,
-        totalOwed,
         { value: totalOwed }
       );
 
