@@ -297,8 +297,4 @@ contract NFTVaultV3 is Ownable, ReentrancyGuard {
 
     // Receive ETH for liquidity
     receive() external payable {}
-
-    function deposits(address collection, uint256 tokenId) public view returns (address) {
-        return deposits[collection][tokenId].owner;
-    }
 }
