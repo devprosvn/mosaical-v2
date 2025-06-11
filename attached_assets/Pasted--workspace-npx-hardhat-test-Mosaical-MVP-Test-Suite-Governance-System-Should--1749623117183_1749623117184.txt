@@ -1,0 +1,69 @@
+~/workspace$ npx hardhat test
+
+
+  Mosaical MVP Test Suite
+    Governance System
+      ✔ Should create proposals
+      ✔ Should handle voting process
+    NFT Vault System
+      1) Should deposit NFT and calculate correct LTV
+      2) Should handle risk tier updates
+      ✔ Should prevent unauthorized withdrawals
+    Loan Manager System
+      3) Should create loan with correct parameters
+      ✔ Should calculate dynamic interest rates
+      4) Should handle loan repayment correctly
+    DPO Token System
+      5) Should mint DPO tokens on loan creation
+      6) "before each" hook for "Should handle DPO token trading"
+
+
+  4 passing (2s)
+  6 failing
+
+  1) Mosaical MVP Test Suite
+       NFT Vault System
+         Should deposit NFT and calculate correct LTV:
+     Error: no matching fragment (operation="fragment", info={ "args": [ "0x70997970C51812dc3A010C7d01b50e0d17dc79C8", "0x998abeb3E57409262aE5b751f60747921B33613E", 1 ], "key": "deposits" }, code=UNSUPPORTED_OPERATION, version=6.14.3)
+      at makeError (node_modules/ethers/src.ts/utils/errors.ts:698:21)
+      at assert (node_modules/ethers/src.ts/utils/errors.ts:719:25)
+      at getFragment (node_modules/ethers/src.ts/contract/contract.ts:270:15)
+      at Proxy.deposits (node_modules/ethers/src.ts/contract/contract.ts:350:26)
+      at Context.<anonymous> (test/MosaicalMVP.test.js:122:29)
+
+  2) Mosaical MVP Test Suite
+       NFT Vault System
+         Should handle risk tier updates:
+     TypeError: nftVault.collectionRiskTier is not a function
+      at Context.<anonymous> (test/MosaicalMVP.test.js:132:29)
+
+  3) Mosaical MVP Test Suite
+       Loan Manager System
+         Should create loan with correct parameters:
+     ProviderError: Contract creation without any data provided
+      at EdrProviderWrapper.request (/home/runner/workspace/node_modules/hardhat/src/internal/hardhat-network/provider/provider.ts:368:19)
+      at HardhatEthersSigner.sendTransaction (/home/runner/workspace/node_modules/@nomicfoundation/hardhat-ethers/src/signers.ts:181:18)
+      at Context.<anonymous> (/home/runner/workspace/test/MosaicalMVP.test.js:157:7)
+
+  4) Mosaical MVP Test Suite
+       Loan Manager System
+         Should handle loan repayment correctly:
+     ProviderError: Contract creation without any data provided
+      at EdrProviderWrapper.request (/home/runner/workspace/node_modules/hardhat/src/internal/hardhat-network/provider/provider.ts:368:19)
+      at HardhatEthersSigner.sendTransaction (/home/runner/workspace/node_modules/@nomicfoundation/hardhat-ethers/src/signers.ts:181:18)
+      at Context.<anonymous> (/home/runner/workspace/test/MosaicalMVP.test.js:200:7)
+
+  5) Mosaical MVP Test Suite
+       DPO Token System
+         Should mint DPO tokens on loan creation:
+     ProviderError: Contract creation without any data provided
+      at EdrProviderWrapper.request (/home/runner/workspace/node_modules/hardhat/src/internal/hardhat-network/provider/provider.ts:368:19)
+      at HardhatEthersSigner.sendTransaction (/home/runner/workspace/node_modules/@nomicfoundation/hardhat-ethers/src/signers.ts:181:18)
+      at Context.<anonymous> (/home/runner/workspace/test/MosaicalMVP.test.js:242:7)
+
+  6) Mosaical MVP Test Suite
+       "before each" hook for "Should handle DPO token trading":
+     ProviderError: Sender doesn't have enough funds to send tx. The max upfront cost is: 1000030000000480000000 and the sender's balance is: 999880834339815226945.
+      at EdrProviderWrapper.request (/home/runner/workspace/node_modules/hardhat/src/internal/hardhat-network/provider/provider.ts:368:19)
+      at HardhatEthersSigner.sendTransaction (/home/runner/workspace/node_modules/@nomicfoundation/hardhat-ethers/src/signers.ts:181:18)
+      at Context.<anonymous> (/home/runner/workspace/test/MosaicalMVP.test.js:63:5)
