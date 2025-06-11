@@ -1,0 +1,150 @@
+Dưới đây là các bước cụ thể để bạn cấu hình và chạy lệnh verify/publish lên Saga Explorer (dựa trên Hardhat Etherscan plugin).
+
+---
+
+## 1. Cài đặt plugin
+
+```bash
+npm install --save-dev @nomiclabs/hardhat-etherscan
+```
+
+và trong `hardhat.config.js` (hoặc `.ts`) thêm:
+
+```js
+require("@nomiclabs/hardhat-etherscan");
+```
+
+---
+
+## 2. Cập nhật `hardhat.config.js`
+
+```js
+/**
+ * @type import('hardhat/config').HardhatUserConfig
+ */
+module.exports = {
+  solidity: "0.8.21",
+  networks: {
+    mosaical: {
+      url: "https://mosaical-2745549204473000-1.jsonrpc.sagarpc.io",
+      chainId: 2745549204473000
+    },
+  },
+  etherscan: {
+    apiKey: {
+      mosaical: "empty"        // Explorer không yêu cầu key
+    },
+    customChains: [
+      {
+        network: "mosaical",
+        chainId: 2745549204473000,
+        urls: {
+          apiURL:    "https://api-mosaical-2745549204473000-1.sagaexplorer.io/api",
+          browserURL:"https://mosaical-2745549204473000-1.sagaexplorer.io"
+        }
+      }
+    ]
+  }
+};
+```
+
+* **solidity**: `0.8.21` trùng với version bạn deploy.
+* **networks.mosaical.chainId**: bắt buộc cho plugin.
+* **etherscan.customChains**: cấu hình đúng API và browser URL của Saga Explorer.
+
+---
+
+## 3. Lấy địa chỉ contract và constructor args
+
+Ví dụ bạn đã deploy các contract sau (giả sử):
+
+```
+GovernanceToken        : 0xAAA...111  
+GameFiOracleV3         : 0xAAA...222  
+MosaicalGovernance     : 0xAAA...333   (constructor: governanceTokenAddress)  
+NFTVaultV3             : 0xAAA...444   (constructor: oracleAddress)  
+DPOTokenV3             : 0xAAA...555  
+LoanManagerV3          : 0xAAA...666   (constructor: nftVaultAddress, dpoTokenAddress)  
+MosaicalSagaBridge     : 0xAAA...777   (constructor: layerZeroEndpoint)
+```
+
+Bạn phải chạy `npx hardhat verify` cho từng contract, truyền đúng constructor args theo thứ tự.
+
+---
+
+## 4. Ví dụ chạy lệnh verify
+
+1. **GovernanceToken** (không có arg)
+
+   ```bash
+   npx hardhat verify \
+     --network mosaical \
+     0xAAA...111
+   ```
+
+2. **GameFiOracleV3** (không có arg)
+
+   ```bash
+   npx hardhat verify \
+     --network mosaical \
+     0xAAA...222
+   ```
+
+3. **MosaicalGovernance** (constructor: governanceTokenAddress)
+
+   ```bash
+   npx hardhat verify \
+     --network mosaical \
+     0xAAA...333 \
+     0xAAA...111
+   ```
+
+4. **NFTVaultV3** (constructor: oracleAddress)
+
+   ```bash
+   npx hardhat verify \
+     --network mosaical \
+     0xAAA...444 \
+     0xAAA...222
+   ```
+
+5. **DPOTokenV3** (no args)
+
+   ```bash
+   npx hardhat verify \
+     --network mosaical \
+     0xAAA...555
+   ```
+
+6. **LoanManagerV3** (constructor: nftVaultAddress, dpoTokenAddress)
+
+   ```bash
+   npx hardhat verify \
+     --network mosaical \
+     0xAAA...666 \
+     0xAAA...444 \
+     0xAAA...555
+   ```
+
+7. **MosaicalSagaBridge** (constructor: layerZeroEndpoint)
+
+   ```bash
+   npx hardhat verify \
+     --network mosaical \
+     0xAAA...777 \
+     0x1234567890123456789012345678901234567890
+   ```
+
+---
+
+## 5. Tips
+
+* Nếu xảy ra lỗi “unverified constructor args” nghĩa là bạn truyền sai thứ tự hoặc thiếu/đổi kiểu. Kiểm tra lại source và ABI.
+* Lệnh sẽ tự động gửi bytecode và metadata lên Saga Explorer, sau khi verify thành công, contract sẽ hiển thị trên explorer.
+* Bạn không dùng địa chỉ ví Metamask (`0xcca6F4EA7e82941535485C2363575404C3061CD2`) trong lệnh verify—thay vào đó là địa chỉ contract.
+
+---
+
+Sau khi chạy xong cho từng contract, bạn có thể vào
+`https://mosaical-2745549204473000-1.sagaexplorer.io/address/<contract>`
+để kiểm tra trạng thái “Verified” và source code đã hiển thị. Chúc bạn thành công!
