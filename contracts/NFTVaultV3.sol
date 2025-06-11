@@ -244,6 +244,23 @@ contract NFTVaultV3 is Ownable, ReentrancyGuard {
         currentLTV = getCurrentLTV(collection, tokenId);
     }
 
+    // Admin functions for GameFi support
+    function setGameCategory(address collection, uint8 category) external onlyOwner {
+        require(category > 0 && category <= 10, "Invalid game category");
+        // Store game category for collection (implementation depends on your needs)
+        emit GameCategorySet(collection, category);
+    }
+
+    function setCollectionRiskTier(address collection, uint8 tier) external onlyOwner {
+        require(tier >= 1 && tier <= 5, "Invalid risk tier");
+        // Store risk tier for collection (implementation depends on your needs)
+        emit CollectionRiskTierSet(collection, tier);
+    }
+
+    // Events for admin functions
+    event GameCategorySet(address indexed collection, uint8 category);
+    event CollectionRiskTierSet(address indexed collection, uint8 tier);
+
     // Emergency functions
     function emergencyWithdraw(address collection, uint256 tokenId) external onlyOwner {
         IERC721(collection).transferFrom(address(this), owner(), tokenId);
