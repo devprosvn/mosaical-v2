@@ -6,6 +6,8 @@ require('dotenv').config();
 
 async function deploy() {
     console.log('🚀 Deploying contracts to Saga chainlet...');
+    console.log('Chainlet ID:', process.env.CHAINLET_ID || 'mosaical_2745549204473000-1');
+    console.log('RPC URL:', process.env.RPC_URL);
     
     try {
         // Setup provider and wallet
@@ -13,6 +15,10 @@ async function deploy() {
         const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
         
         console.log('Deploying from address:', wallet.address);
+        
+        // Check balance
+        const balance = await provider.getBalance(wallet.address);
+        console.log('Account balance:', ethers.formatEther(balance), 'MOSAIC');
         
         // Read compiled contracts
         const contractsPath = path.join(__dirname, '../artifacts/contracts');
@@ -62,16 +68,42 @@ async function deploy() {
         await governance.waitForDeployment();
         console.log('MosaicalGovernance deployed to:', await governance.getAddress());
         
+        // Deploy LoanManagerV3 and DPOTokenV3
+        const DPOTokenV3 = JSON.parse(fs.readFileSync(
+            path.join(contractsPath, 'DPOTokenV3.sol/DPOTokenV3.json')
+        ));
+        const dpoTokenFactory = new ethers.ContractFactory(DPOTokenV3.abi, DPOTokenV3.bytecode, wallet);
+        const dpoToken = await dpoTokenFactory.deploy();
+        await dpoToken.waitForDeployment();
+        console.log('DPOTokenV3 deployed to:', await dpoToken.getAddress());
+        
+        const LoanManagerV3 = JSON.parse(fs.readFileSync(
+            path.join(contractsPath, 'LoanManagerV3.sol/LoanManagerV3.json')
+        ));
+        const loanManagerFactory = new ethers.ContractFactory(LoanManagerV3.abi, LoanManagerV3.bytecode, wallet);
+        const loanManager = await loanManagerFactory.deploy(
+            await vault.getAddress(),
+            await oracle.getAddress(),
+            await dpoToken.getAddress()
+        );
+        await loanManager.waitForDeployment();
+        console.log('LoanManagerV3 deployed to:', await loanManager.getAddress());
+        
         // Save deployment info
         const deploymentInfo = {
             network: process.env.NETWORK,
+            chainletId: process.env.CHAINLET_ID || 'mosaical_2745549204473000-1',
+            rpcUrl: process.env.RPC_URL,
+            blockExplorer: process.env.BLOCK_EXPLORER,
             timestamp: new Date().toISOString(),
             contracts: {
                 MockGameNFT: await mockNFT.getAddress(),
                 GovernanceToken: await govToken.getAddress(),
                 GameFiOracleV3: await oracle.getAddress(),
                 NFTVaultV3: await vault.getAddress(),
-                MosaicalGovernance: await governance.getAddress()
+                MosaicalGovernance: await governance.getAddress(),
+                DPOTokenV3: await dpoToken.getAddress(),
+                LoanManagerV3: await loanManager.getAddress()
             }
         };
         

@@ -17,7 +17,9 @@ module.exports = {
     saga: {
       url: process.env.RPC_URL || "https://mosaical-2745549204473000-1.jsonrpc.sagarpc.io",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
-      chainId: 2745549204473000
+      chainId: 2745549204473000,
+      gasPrice: "auto", // Fixed gas price is disabled on this chainlet
+      timeout: 60000
     },
     hardhat: {
       chainId: 1337
