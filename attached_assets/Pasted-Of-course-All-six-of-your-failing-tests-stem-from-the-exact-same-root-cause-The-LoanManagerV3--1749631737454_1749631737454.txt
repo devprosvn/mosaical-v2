@@ -1,0 +1,106 @@
+Of course. All six of your failing tests stem from the exact same root cause.
+
+The `LoanManagerV3` contract is trying to call a function named `mintOnLoan` on your `DPOTokenV3` contract, but **that function does not exist** on `DPOTokenV3`. This is why you're seeing the error `function selector was not recognized`.
+
+---
+
+### Why This Happens
+
+1.  **The Call:** Inside your `LoanManagerV3.sol`, the `borrow` function explicitly calls `mintOnLoan`.
+
+    ```solidity
+    // File: contracts/LoanManagerV3.sol, line 149
+    function borrow(...) {
+        // ...
+        // Mint DPO tokens
+        dpoToken.mintOnLoan(collection, tokenId, msg.sender, amount); // This function is called
+        // ...
+    }
+    ```
+
+2.  **The Missing Function:** However, if you look at your `DPOTokenV3.sol` contract, there is no function with that name. It only has a generic `mint` function.
+
+    ```solidity
+    // File: contracts/DPOTokenV3.sol
+    contract DPOTokenV3 is ERC20, Ownable {
+        //...
+        // NO function named "mintOnLoan" exists here.
+        function mint(address to, uint256 amount) external {
+            //...
+        }
+        //...
+    }
+    ```
+
+Because the `LoanManagerV3` contract calls a function that isn't defined on the `DPOTokenV3` contract instance, the transaction reverts.
+
+---
+
+### 🔧 The Solution
+
+You need to implement the missing `mintOnLoan` function in your `DPOTokenV3` contract and then authorize the `LoanManagerV3` contract to call it in your test setup.
+
+#### **Step 1: Update `DPOTokenV3.sol`**
+
+Add the `mintOnLoan` function to your `DPOTokenV3` contract. This function will check if the caller (the `LoanManagerV3` contract) is an authorized minter and then mint tokens to the borrower.
+
+```solidity
+// contracts/DPOTokenV3.sol
+
+// ... (imports and contract definition)
+
+contract DPOTokenV3 is ERC20, Ownable {
+
+    mapping(address => bool) public authorizedMinters;
+
+    // ... (events, constructor)
+
+    // ✨ ADD THIS NEW FUNCTION ✨
+    function mintOnLoan(
+        address collection, // The 'collection' and 'tokenId' parameters are unused for now but match the interface
+        uint256 tokenId,
+        address borrower,
+        uint256 amount
+    ) external {
+        require(authorizedMinters[msg.sender], "Not authorized to mint");
+        _mint(borrower, amount);
+        emit TokensMinted(borrower, amount);
+    }
+
+    function mint(address to, uint256 amount) external {
+        require(authorizedMinters[msg.sender] || msg.sender == owner(), "Not authorized to mint");
+        _mint(to, amount);
+        emit TokensMinted(to, amount);
+    }
+    
+    // ... (rest of the contract)
+}
+```
+
+#### **Step 2: Update Your Test Setup in `MosaicalMVP.test.js`**
+
+Now that `mintOnLoan` requires an authorized minter, you must grant the `LoanManagerV3` contract that permission within your `beforeEach` test hook.
+
+Add the following line after all the contracts have been deployed.
+
+```javascript
+// test/MosaicalMVP.test.js
+
+  beforeEach(async function () {
+    [admin, borrower, lender, treasury] = await ethers.getSigners();
+
+    // ... All contract deployments ...
+    // e.g., after `await bridge.waitForDeployment();`
+
+    // ✨ ADD THIS LINE TO AUTHORIZE THE LOAN MANAGER ✨
+    const loanManagerAddress = await loanManager.getAddress();
+    await dpoToken.authorizeMinter(loanManagerAddress);
+
+
+    // Setup test data
+    await nftVault.addSupportedCollection(collectionAddress);
+    // ... rest of the beforeEach hook
+  });
+```
+
+By implementing the function the `LoanManagerV3` expects and giving it the required permissions, all six failing tests will be resolved.
