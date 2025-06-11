@@ -29,7 +29,8 @@ describe("Mosaical MVP Test Suite", function () {
     await oracle.waitForDeployment();
 
     const MosaicalGovernance = await ethers.getContractFactory("MosaicalGovernance");
-    governance = await MosaicalGovernance.deploy(await governanceToken.getAddress());
+    const governanceTokenAddress = await governanceToken.getAddress();
+    governance = await MosaicalGovernance.deploy(governanceTokenAddress);
     await governance.waitForDeployment();
 
     const NFTVaultV3 = await ethers.getContractFactory("NFTVaultV3");
