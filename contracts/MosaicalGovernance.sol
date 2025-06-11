@@ -5,10 +5,7 @@ pragma solidity ^0.8.21;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-
 contract MosaicalGovernance is Ownable, ReentrancyGuard {
-    using SafeMath for uint256;
     
     IERC20 public governanceToken;
     
@@ -89,20 +86,20 @@ contract MosaicalGovernance is Ownable, ReentrancyGuard {
         
         // Remove votes from current delegate
         if (currentDelegate != address(0)) {
-            delegatedVotes[currentDelegate] = delegatedVotes[currentDelegate].sub(delegatorBalance);
+            delegatedVotes[currentDelegate] = delegatedVotes[currentDelegate] - delegatorBalance;
         }
         
         // Add votes to new delegate
         delegates[msg.sender] = delegatee;
         if (delegatee != address(0)) {
-            delegatedVotes[delegatee] = delegatedVotes[delegatee].add(delegatorBalance);
+            delegatedVotes[delegatee] = delegatedVotes[delegatee] + delegatorBalance;
         }
         
         emit DelegateChanged(msg.sender, delegatee);
     }
     
     function getVotingPower(address account) public view returns (uint256) {
-        return governanceToken.balanceOf(account).add(delegatedVotes[account]);
+        return governanceToken.balanceOf(account) + delegatedVotes[account];
     }
     
     // Proposal functions
@@ -125,7 +122,7 @@ contract MosaicalGovernance is Ownable, ReentrancyGuard {
             title: title,
             description: description,
             startTime: block.timestamp,
-            endTime: block.timestamp.add(VOTING_DURATION),
+            endTime: block.timestamp + VOTING_DURATION,
             forVotes: 0,
             againstVotes: 0,
             abstainVotes: 0,
@@ -140,7 +137,7 @@ contract MosaicalGovernance is Ownable, ReentrancyGuard {
             msg.sender,
             title,
             block.timestamp,
-            block.timestamp.add(VOTING_DURATION)
+            block.timestamp + VOTING_DURATION
         );
         
         return proposalId;
@@ -165,11 +162,11 @@ contract MosaicalGovernance is Ownable, ReentrancyGuard {
         userVote.weight = weight;
         
         if (choice == VoteChoice.FOR) {
-            proposal.forVotes = proposal.forVotes.add(weight);
+            proposal.forVotes = proposal.forVotes + weight;
         } else if (choice == VoteChoice.AGAINST) {
-            proposal.againstVotes = proposal.againstVotes.add(weight);
+            proposal.againstVotes = proposal.againstVotes + weight;
         } else {
-            proposal.abstainVotes = proposal.abstainVotes.add(weight);
+            proposal.abstainVotes = proposal.abstainVotes + weight;
         }
         
         emit VoteCast(proposalId, msg.sender, choice, weight);
@@ -183,16 +180,16 @@ contract MosaicalGovernance is Ownable, ReentrancyGuard {
         require(!proposal.cancelled, "Proposal cancelled");
         
         // Check quorum
-        uint256 totalVotes = proposal.forVotes.add(proposal.againstVotes).add(proposal.abstainVotes);
+        uint256 totalVotes = proposal.forVotes + proposal.againstVotes + proposal.abstainVotes;
         uint256 totalSupply = governanceToken.totalSupply();
-        uint256 quorumRequired = totalSupply.mul(QUORUM_PERCENTAGE).div(100);
+        uint256 quorumRequired = totalSupply * QUORUM_PERCENTAGE / 100;
         require(totalVotes >= quorumRequired, "Quorum not reached");
         
         // Check approval
         uint256 approvalVotes = proposal.forVotes;
-        uint256 totalVotesForApproval = proposal.forVotes.add(proposal.againstVotes);
+        uint256 totalVotesForApproval = proposal.forVotes + proposal.againstVotes;
         require(
-            approvalVotes.mul(100).div(totalVotesForApproval) >= APPROVAL_THRESHOLD,
+            approvalVotes * 100 / totalVotesForApproval >= APPROVAL_THRESHOLD,
             "Proposal not approved"
         );
         
@@ -259,16 +256,16 @@ contract MosaicalGovernance is Ownable, ReentrancyGuard {
         if (block.timestamp <= proposal.endTime) return "Active";
         
         // Check if proposal can be executed
-        uint256 totalVotes = proposal.forVotes.add(proposal.againstVotes).add(proposal.abstainVotes);
+        uint256 totalVotes = proposal.forVotes + proposal.againstVotes + proposal.abstainVotes;
         uint256 totalSupply = governanceToken.totalSupply();
-        uint256 quorumRequired = totalSupply.mul(QUORUM_PERCENTAGE).div(100);
+        uint256 quorumRequired = totalSupply * QUORUM_PERCENTAGE / 100;
         
         if (totalVotes < quorumRequired) return "Failed";
         
         uint256 approvalVotes = proposal.forVotes;
-        uint256 totalVotesForApproval = proposal.forVotes.add(proposal.againstVotes);
+        uint256 totalVotesForApproval = proposal.forVotes + proposal.againstVotes;
         
-        if (totalVotesForApproval == 0 || approvalVotes.mul(100).div(totalVotesForApproval) < APPROVAL_THRESHOLD) {
+        if (totalVotesForApproval == 0 || approvalVotes * 100 / totalVotesForApproval < APPROVAL_THRESHOLD) {
             return "Failed";
         }
         
