@@ -13,3 +13,24 @@ packages = ["solc", "nodejs_20"]
 run = ["node", "index.js"]
 deploymentTarget = "autoscale"
 ignorePorts = false
+
+[workflows]
+runButton = "Deploy Contracts"
+
+[[workflows.workflow]]
+name = "Compile Contracts"
+author = 42118327
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node scripts/compile.js"
+
+[[workflows.workflow]]
+name = "Deploy Contracts"
+author = 42118327
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node index.js deploy"
