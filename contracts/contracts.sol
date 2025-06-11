@@ -760,7 +760,7 @@ contract MockGameNFT is ERC721, Ownable {
                 "/contract/",
                 Strings.toHexString(uint160(address(this)), 20),
                 "?token_ids%5B%5D=",
-                tokenId.toString()
+                Strings.toString(tokenId)
             )
         );
     }
