@@ -30,30 +30,19 @@ describe("Mosaical MVP Test Suite", function () {
     oracle = await GameFiOracleV3.deploy();
 
     const NFTVaultV3 = await ethers.getContractFactory("NFTVaultV3");
-    nftVault = await NFTVaultV3.deploy();
+    nftVault = await NFTVaultV3.deploy(oracle.address);
 
     const DPOTokenV3 = await ethers.getContractFactory("DPOTokenV3");
     dpoToken = await DPOTokenV3.deploy();
 
     const LoanManagerV3 = await ethers.getContractFactory("LoanManagerV3");
-    loanManager = await LoanManagerV3.deploy(
-      nftVault.address,
-      oracle.address,
-      dpoToken.address,
-      treasury.address
-    );
+    loanManager = await LoanManagerV3.deploy();
 
     const MosaicalSagaBridge = await ethers.getContractFactory("MosaicalSagaBridge");
     bridge = await MosaicalSagaBridge.deploy("0x1234567890123456789012345678901234567890"); // Mock LayerZero endpoint
 
-    // Initialize contracts
-    await nftVault.initialize(oracle.address, loanManager.address);
-    await dpoToken.initialize(loanManager.address, treasury.address);
-    await oracle.initialize();
-
     // Setup test data
-    await nftVault.addSupportedChainlet(chainletId);
-    await nftVault.addSupportedCollection(chainletId, collectionAddress);
+    await nftVault.addSupportedCollection(collectionAddress);
     await nftVault.setGameCategory(collectionAddress, 1); // RPG
     await nftVault.setCollectionRiskTier(collectionAddress, 2); // Medium risk
 
