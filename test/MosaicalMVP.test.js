@@ -234,7 +234,7 @@ describe("Mosaical MVP Test Suite", function () {
 
       // Get total owed
       const loanData = await loanManager.loanData(borrower.address, collectionAddress, 1);
-      const totalOwed = borrowAmount.add(loanData.accruedInterest);
+      const totalOwed = borrowAmount + loanData.accruedInterest;
 
       // Repay loan
       await loanManager.connect(borrower).repay(
@@ -622,7 +622,7 @@ describe("Mosaical MVP Test Suite", function () {
       await loanManager.updateLoanInterest(borrower.address, collectionAddress, 1);
       const loan = await loanManager.loans(borrower.address, collectionAddress, 1);
       const loanData = await loanManager.loanData(borrower.address, collectionAddress, 1);
-      const totalOwed = loan.add(loanData.accruedInterest);
+      const totalOwed = loan + loanData.accruedInterest;
 
       await loanManager.connect(borrower).repay(
         collectionAddress,
