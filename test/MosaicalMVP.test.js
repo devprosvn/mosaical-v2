@@ -1,4 +1,3 @@
-
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { time } = require("@nomicfoundation/hardhat-toolbox/network-helpers");
@@ -12,40 +11,40 @@ describe("Mosaical MVP Test Suite", function () {
   beforeEach(async function () {
     [admin, borrower, lender, treasury] = await ethers.getSigners();
 
-    // Deploy Mock GameFi NFT from contracts.sol
-    const MockGameNFT = await ethers.getContractFactory("contracts/contracts.sol:MockGameNFT");
+    // Deploy Mock GameFi NFT
+    const MockGameNFT = await ethers.getContractFactory("MockGameNFT");
     gameNFT = await MockGameNFT.deploy("Test Game NFT", "TGNFT");
     await gameNFT.waitForDeployment();
     collectionAddress = await gameNFT.getAddress();
     chainletId = "mosaical_2745549204473000-1";
 
-    // Deploy Governance Token from contracts.sol
-    const GovernanceToken = await ethers.getContractFactory("contracts/contracts.sol:GovernanceToken");
+    // Deploy Governance Token
+    const GovernanceToken = await ethers.getContractFactory("GovernanceToken");
     governanceToken = await GovernanceToken.deploy("Mosaical Governance", "MSCLGOV");
     await governanceToken.waitForDeployment();
 
-    // Deploy Core Contracts in correct order from contracts.sol
-    const GameFiOracleV3 = await ethers.getContractFactory("contracts/contracts.sol:GameFiOracleV3");
+    // Deploy Core Contracts in correct order
+    const GameFiOracleV3 = await ethers.getContractFactory("GameFiOracleV3");
     oracle = await GameFiOracleV3.deploy();
     await oracle.waitForDeployment();
 
-    const MosaicalGovernance = await ethers.getContractFactory("contracts/contracts.sol:MosaicalGovernance");
+    const MosaicalGovernance = await ethers.getContractFactory("MosaicalGovernance");
     const governanceTokenAddress = await governanceToken.getAddress();
     governance = await MosaicalGovernance.deploy(governanceTokenAddress);
     await governance.waitForDeployment();
 
-    const NFTVaultV3 = await ethers.getContractFactory("contracts/contracts.sol:NFTVaultV3");
+    const NFTVaultV3 = await ethers.getContractFactory("NFTVaultV3");
     const oracleAddress = await oracle.getAddress();
     nftVault = await NFTVaultV3.deploy(oracleAddress);
     await nftVault.waitForDeployment();
 
-    // Deploy DPO Token from contracts.sol
-    const DPOTokenV3 = await ethers.getContractFactory("contracts/contracts.sol:DPOTokenV3");
+    // Deploy DPO Token
+    const DPOTokenV3 = await ethers.getContractFactory("DPOTokenV3");
     dpoToken = await DPOTokenV3.deploy();
     await dpoToken.waitForDeployment();
 
-    // Deploy LoanManager from contracts.sol
-    const LoanManagerV3 = await ethers.getContractFactory("contracts/contracts.sol:LoanManagerV3");
+    // Deploy LoanManager
+    const LoanManagerV3 = await ethers.getContractFactory("LoanManagerV3");
     const nftVaultAddress = await nftVault.getAddress();
     const dpoTokenAddress = await dpoToken.getAddress();
     loanManager = await LoanManagerV3.deploy(
@@ -54,10 +53,10 @@ describe("Mosaical MVP Test Suite", function () {
     );
     await loanManager.waitForDeployment();
 
-    // Deploy MosaicalSagaBridge from contracts.sol
-    const MosaicalSagaBridge = await ethers.getContractFactory("contracts/contracts.sol:MosaicalSagaBridge");
+    // Deploy MosaicalSagaBridge
+    const MosaicalSagaBridge = await ethers.getContractFactory("MosaicalSagaBridge");
     const mockLayerZeroEndpoint = "0x1234567890123456789012345678901234567890";
-    bridge = await MosaicalSagaBridge.deploy(mockLayerZeroEndpoint);
+    bridge = await MosaicalSagaBridge.deploy(mockLayerZeroEndpoint); // Mock LayerZero endpoint
     await bridge.waitForDeployment();
 
     // Authorize LoanManager to mint DPO tokens
@@ -422,7 +421,6 @@ describe("Mosaical MVP Test Suite", function () {
       expect(metrics.holders).to.equal(10000);
       expect(metrics.isGameFi).to.be.true;
     });
-  });
 
   describe("Bridge System", function () {
     it("Should setup Saga chainlet mappings", async function () {
@@ -650,5 +648,6 @@ describe("Mosaical MVP Test Suite", function () {
       const finalLoanState = await loanManager.loanData(borrower.address, collectionAddress, 1);
       expect(finalLoanState.isActive).to.be.false;
     });
+  });
   });
 });

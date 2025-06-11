@@ -1,81 +1,110 @@
-const hre = require("hardhat");
+const { ethers } = require('ethers');
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
 async function deploy() {
     console.log('🚀 Deploying contracts to Saga chainlet...');
-    console.log('Chainlet ID:', process.env.CHAINLET_ID || 'devpros_2749656616387000-1');
-    console.log('RPC URL:', process.env.RPC_URL || 'https://devpros-2749656616387000-1.jsonrpc.sagarpc.io');
+    console.log('Chainlet ID:', process.env.CHAINLET_ID || 'mosaical_2745549204473000-1');
+    console.log('RPC URL:', process.env.RPC_URL);
 
     try {
-        const [deployer] = await hre.ethers.getSigners();
-        console.log('Deploying from address:', deployer.address);
+        // Setup provider and wallet
+        const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
+        const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+
+        console.log('Deploying from address:', wallet.address);
 
         // Check balance
-        const balance = await hre.ethers.provider.getBalance(deployer.address);
-        console.log('Account balance:', hre.ethers.formatEther(balance), 'DPSV');
+        const balance = await provider.getBalance(wallet.address);
+        console.log('Account balance:', ethers.formatEther(balance), 'MOSAIC');
 
-        // Deploy MockGameNFT from contracts.sol
-        const MockGameNFT = await hre.ethers.getContractFactory("contracts/contracts.sol:MockGameNFT");
-        const mockNFT = await MockGameNFT.deploy("Test Game NFT", "TGNFT");
+        // Read compiled contracts
+        const contractsPath = path.join(__dirname, '../artifacts/contracts');
+
+        // Deploy MockGameNFT
+        const MockGameNFT = JSON.parse(fs.readFileSync(
+            path.join(contractsPath, 'MockGameNFT.sol/MockGameNFT.json')
+        ));
+        const mockNFTFactory = new ethers.ContractFactory(MockGameNFT.abi, MockGameNFT.bytecode, wallet);
+        const mockNFT = await mockNFTFactory.deploy("Test Game NFT", "TGNFT");
         await mockNFT.waitForDeployment();
         console.log('MockGameNFT deployed to:', await mockNFT.getAddress());
 
-        // Deploy GovernanceToken from contracts.sol
-        const GovernanceToken = await hre.ethers.getContractFactory("contracts/contracts.sol:GovernanceToken");
-        const govToken = await GovernanceToken.deploy("Devpros Governance", "DPSGOV");
+        // Deploy GovernanceToken
+        const GovernanceToken = JSON.parse(fs.readFileSync(
+            path.join(contractsPath, 'GovernanceToken.sol/GovernanceToken.json')
+        ));
+        const govTokenFactory = new ethers.ContractFactory(GovernanceToken.abi, GovernanceToken.bytecode, wallet);
+        const govToken = await govTokenFactory.deploy("Mosaical Governance", "MSCLGOV");
         await govToken.waitForDeployment();
         console.log('GovernanceToken deployed to:', await govToken.getAddress());
 
-        // Deploy GameFiOracleV3 from contracts.sol
-        const GameFiOracleV3 = await hre.ethers.getContractFactory("contracts/contracts.sol:GameFiOracleV3");
-        const oracle = await GameFiOracleV3.deploy();
+        // Deploy GameFiOracleV3
+        const GameFiOracleV3 = JSON.parse(fs.readFileSync(
+            path.join(contractsPath, 'GameFiOracleV3.sol/GameFiOracleV3.json')
+        ));
+        const oracleFactory = new ethers.ContractFactory(GameFiOracleV3.abi, GameFiOracleV3.bytecode, wallet);
+        const oracle = await oracleFactory.deploy();
         await oracle.waitForDeployment();
         console.log('GameFiOracleV3 deployed to:', await oracle.getAddress());
 
-        // Deploy NFTVaultV3 from contracts.sol
-        const NFTVaultV3 = await hre.ethers.getContractFactory("contracts/contracts.sol:NFTVaultV3");
-        const vault = await NFTVaultV3.deploy(await oracle.getAddress());
+        // Deploy NFTVaultV3
+        const NFTVaultV3 = JSON.parse(fs.readFileSync(
+            path.join(contractsPath, 'NFTVaultV3.sol/NFTVaultV3.json')
+        ));
+        const vaultFactory = new ethers.ContractFactory(NFTVaultV3.abi, NFTVaultV3.bytecode, wallet);
+        const vault = await vaultFactory.deploy(await oracle.getAddress());
         await vault.waitForDeployment();
         console.log('NFTVaultV3 deployed to:', await vault.getAddress());
 
-        // Deploy MosaicalGovernance from contracts.sol
-        const MosaicalGovernance = await hre.ethers.getContractFactory("contracts/contracts.sol:MosaicalGovernance");
-        const governance = await MosaicalGovernance.deploy(await govToken.getAddress());
+        // Deploy MosaicalGovernance
+        const MosaicalGovernance = JSON.parse(fs.readFileSync(
+            path.join(contractsPath, 'MosaicalGovernance.sol/MosaicalGovernance.json')
+        ));
+        const governanceFactory = new ethers.ContractFactory(MosaicalGovernance.abi, MosaicalGovernance.bytecode, wallet);
+        const governance = await governanceFactory.deploy(await govToken.getAddress());
         await governance.waitForDeployment();
         console.log('MosaicalGovernance deployed to:', await governance.getAddress());
 
-        // Deploy DPOTokenV3 from contracts.sol
-        const DPOTokenV3 = await hre.ethers.getContractFactory("contracts/contracts.sol:DPOTokenV3");
-        const dpoToken = await DPOTokenV3.deploy();
+        // Deploy DPOTokenV3
+        const DPOTokenV3 = JSON.parse(fs.readFileSync(
+            path.join(contractsPath, 'DPOTokenV3.sol/DPOTokenV3.json')
+        ));
+        const dpoTokenFactory = new ethers.ContractFactory(DPOTokenV3.abi, DPOTokenV3.bytecode, wallet);
+        const dpoToken = await dpoTokenFactory.deploy();
         await dpoToken.waitForDeployment();
         console.log('DPOTokenV3 deployed to:', await dpoToken.getAddress());
 
-        // Deploy LoanManagerV3 from contracts.sol
-        const LoanManagerV3 = await hre.ethers.getContractFactory("contracts/contracts.sol:LoanManagerV3");
-        const loanManager = await LoanManagerV3.deploy(
+        // Deploy LoanManagerV3
+        const LoanManagerV3 = JSON.parse(fs.readFileSync(
+            path.join(contractsPath, 'LoanManagerV3.sol/LoanManagerV3.json')
+        ));
+        const loanManagerFactory = new ethers.ContractFactory(LoanManagerV3.abi, LoanManagerV3.bytecode, wallet);
+        const loanManager = await loanManagerFactory.deploy(
             await vault.getAddress(),
             await dpoToken.getAddress()
         );
         await loanManager.waitForDeployment();
         console.log('LoanManagerV3 deployed to:', await loanManager.getAddress());
 
-        // Deploy MosaicalSagaBridge from contracts.sol
-        const MosaicalSagaBridge = await hre.ethers.getContractFactory("contracts/contracts.sol:MosaicalSagaBridge");
-        const bridge = await MosaicalSagaBridge.deploy("0xcca6F4EA7e82941535485C2363575404C3061CD2");
+           // Deploy Bridge with LayerZero endpoint
+        const MosaicalSagaBridge = JSON.parse(fs.readFileSync(
+            path.join(contractsPath, 'MosaicalSagaBridge.sol/MosaicalSagaBridge.json')
+        ));
+        const bridgeFactory = new ethers.ContractFactory(MosaicalSagaBridge.abi, MosaicalSagaBridge.bytecode, wallet);
+        const bridge = await bridgeFactory.deploy("0x1234567890123456789012345678901234567890"); // Mock LayerZero endpoint
         await bridge.waitForDeployment();
-        console.log('MosaicalSagaBridge deployed to:', await bridge.getAddress());
+        console.log(`MosaicalSagaBridge deployed to: ${await bridge.getAddress()}`);
+
 
         // Save deployment info
         const deploymentInfo = {
-            network: process.env.NETWORK || "saga",
-            chainletId: process.env.CHAINLET_ID || 'devpros_2749656616387000-1',
-            rpcUrl: process.env.RPC_URL || 'https://devpros-2749656616387000-1.jsonrpc.sagarpc.io',
-            websocketUrl: 'https://devpros-2749656616387000-1.ws.sagarpc.io',
-            blockExplorer: 'https://devpros-2749656616387000-1.sagaexplorer.io',
+            network: process.env.NETWORK,
+            chainletId: process.env.CHAINLET_ID || 'mosaical_2745549204473000-1',
+            rpcUrl: process.env.RPC_URL,
+            blockExplorer: process.env.BLOCK_EXPLORER,
             timestamp: new Date().toISOString(),
-            deployer: deployer.address,
             contracts: {
                 MockGameNFT: await mockNFT.getAddress(),
                 GovernanceToken: await govToken.getAddress(),
@@ -92,32 +121,22 @@ async function deploy() {
             fs.mkdirSync('deployments');
         }
 
-        const networkName = process.env.NETWORK || "saga";
         fs.writeFileSync(
-            `deployments/${networkName}-deployment.json`,
+            `deployments/${process.env.NETWORK}-deployment.json`,
             JSON.stringify(deploymentInfo, null, 2)
         );
 
         console.log('✅ All contracts deployed successfully!');
-        console.log('📄 Deployment info saved to deployments/' + networkName + '-deployment.json');
-        console.log(`\n🔗 Block Explorer: https://devpros-2749656616387000-1.sagaexplorer.io`);
-        console.log(`🔗 RPC Endpoint: https://devpros-2749656616387000-1.jsonrpc.sagarpc.io`);
-        console.log(`🔗 WebSocket: https://devpros-2749656616387000-1.ws.sagarpc.io`);
+        console.log('📄 Deployment info saved to deployments/' + process.env.NETWORK + '-deployment.json');
 
     } catch (error) {
         console.error('❌ Deployment failed:', error.message);
-        console.error(error.stack);
         process.exit(1);
     }
 }
 
 if (require.main === module) {
-    deploy()
-        .then(() => process.exit(0))
-        .catch((error) => {
-            console.error(error);
-            process.exit(1);
-        });
+    deploy();
 }
 
-module.exports = deploy;
+module.exports = { deploy };
