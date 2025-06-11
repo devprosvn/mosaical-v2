@@ -38,15 +38,15 @@ module.exports = {
   },
   etherscan: {
     apiKey: {
-      saga: "empty",
-      mosaical: "empty"
+      saga: "abc",
+      mosaical: "abc"
     },
     customChains: [
       {
         network: "saga",
         chainId: 2745549204473000,
         urls: {
-          apiURL: "https://api-mosaical-2745549204473000-1.sagaexplorer.io/api",
+          apiURL: "https://mosaical-2745549204473000-1.sagaexplorer.io/api",
           browserURL: "https://mosaical-2745549204473000-1.sagaexplorer.io"
         }
       },
@@ -54,11 +54,14 @@ module.exports = {
         network: "mosaical", 
         chainId: 2745549204473000,
         urls: {
-          apiURL: "https://api-mosaical-2745549204473000-1.sagaexplorer.io/api",
+          apiURL: "https://mosaical-2745549204473000-1.sagaexplorer.io/api",
           browserURL: "https://mosaical-2745549204473000-1.sagaexplorer.io"
         }
       }
     ]
+  },
+  sourcify: {
+    enabled: false
   },
   paths: {
     sources: "./contracts",
