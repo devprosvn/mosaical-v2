@@ -2,6 +2,7 @@
 const { compile } = require('./scripts/compile');
 const { deploy } = require('./scripts/deploy');
 const { interact } = require('./scripts/interact');
+const { verifyContracts } = require('./scripts/verify');
 
 async function main() {
     console.log('🏗️  Solidity Smart Contract Project');
@@ -18,6 +19,9 @@ async function main() {
             await compile();
             await deploy();
             break;
+        case 'verify':
+            await verifyContracts();
+            break;
         case 'interact':
             await interact();
             break;
@@ -26,12 +30,20 @@ async function main() {
             await deploy();
             await interact();
             break;
+        case 'complete':
+            await compile();
+            await deploy();
+            await verifyContracts();
+            await interact();
+            break;
         default:
             console.log('Available commands:');
-            console.log('  node index.js compile  - Compile contracts');
-            console.log('  node index.js deploy   - Compile and deploy');
-            console.log('  node index.js interact - Interact with deployed contract');
-            console.log('  node index.js full     - Run full workflow');
+            console.log('  node index.js compile   - Compile contracts');
+            console.log('  node index.js deploy    - Compile and deploy');
+            console.log('  node index.js verify    - Verify deployed contracts');
+            console.log('  node index.js interact  - Interact with deployed contract');
+            console.log('  node index.js full      - Run compile + deploy + interact');
+            console.log('  node index.js complete  - Run compile + deploy + verify + interact');
     }
 }
 

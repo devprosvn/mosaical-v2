@@ -33,4 +33,13 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "node index.js deploy"
+args = "cd src && node index.js deploy"
+
+[[workflows.workflow]]
+name = "Verify Contracts"
+author = 42118327
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd src && node index.js verify"
