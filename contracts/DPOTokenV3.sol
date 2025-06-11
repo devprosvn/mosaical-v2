@@ -13,7 +13,10 @@ contract DPOTokenV3 is ERC20, Ownable {
     mapping(address => mapping(uint256 => mapping(address => uint256))) public tokenHoldings;
     mapping(address => mapping(uint256 => uint256)) public nftTokenSupply;
 
-    event InterestDistributed(address indexed collection, uint256 indexed tokenId, uint256 amount);
+    // Stateful interest tracking
+    mapping(address => mapping(uint256 => mapping(address => uint256))) public claimableInterest;
+
+    event InterestDistributed(address indexed collection, uint256 indexed tokenId, address indexed holder, uint256 amount);
     event InterestClaimed(address indexed user, address indexed collection, uint256 indexed tokenId, uint256 amount);
     event OrderPlaced(address indexed user, address indexed collection, uint256 indexed tokenId, bool isBuy, uint256 amount, uint256 price);
     event TradeExecuted(address indexed buyer, address indexed seller, address indexed collection, uint256 tokenId, uint256 amount, uint256 price);
@@ -59,19 +62,19 @@ contract DPOTokenV3 is ERC20, Ownable {
     }
 
     // Additional functions for DPO token functionality
-    function distributeInterest(address collection, uint256 tokenId, uint256 amount) external onlyOwner {
-        emit InterestDistributed(collection, tokenId, amount);
+    function distributeInterest(address collection, uint256 tokenId, address holder, uint256 amount) external onlyOwner {
+        claimableInterest[collection][tokenId][holder] += amount;
+        emit InterestDistributed(collection, tokenId, holder, amount);
     }
 
     function calculatePendingInterest(address user, address collection, uint256 tokenId) external view returns (uint256) {
-        // Simplified calculation - in production this would be more complex
-        uint256 userBalance = tokenHoldings[collection][tokenId][user];
-        return userBalance > 0 ? userBalance / 100 : 0; // 1% of holdings as mock interest
+        return claimableInterest[collection][tokenId][user];
     }
 
     function claimInterest(address collection, uint256 tokenId) external {
-        uint256 pending = this.calculatePendingInterest(msg.sender, collection, tokenId);
+        uint256 pending = claimableInterest[collection][tokenId][msg.sender];
         if (pending > 0) {
+            claimableInterest[collection][tokenId][msg.sender] = 0;
             _mint(msg.sender, pending);
             emit InterestClaimed(msg.sender, collection, tokenId, pending);
         }

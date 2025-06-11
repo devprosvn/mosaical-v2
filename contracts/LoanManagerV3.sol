@@ -144,6 +144,7 @@ contract LoanManagerV3 is Ownable, ReentrancyGuard {
         });
 
         loanHealthFactors[msg.sender][collection][tokenId] = 15000; // 1.5x health factor
+        loans[msg.sender][collection][tokenId] = amount;
 
         // Mint DPO tokens
         dpoToken.mintOnLoan(collection, tokenId, msg.sender, amount);
@@ -167,6 +168,7 @@ contract LoanManagerV3 is Ownable, ReentrancyGuard {
 
         // Close loan
         loan.isActive = false;
+        loans[msg.sender][collection][tokenId] = 0;
         loanData[msg.sender][collection][tokenId] = LoanData({principal:0, accruedInterest:0, startTime:0, lastUpdateTime:0, interestRate: 0, isActive: false});
 
         // Refund excess
@@ -222,6 +224,18 @@ contract LoanManagerV3 is Ownable, ReentrancyGuard {
             return model.baseRate + model.slope1 + (excessUtilization * model.slope2) / 10000;
         }
     }
+
+    function getAccruedInterest(address borrower, address collection, uint256 tokenId) external view returns (uint256) {
+        LoanData memory loan = loanData[borrower][collection][tokenId];
+        if (!loan.isActive) return 0;
+
+        uint256 timeElapsed = block.timestamp - loan.lastUpdateTime;
+        uint256 interest = loan.principal * loan.interestRate * timeElapsed / (10000 * 365 days);
+        return loan.accruedInterest + interest;
+    }
+
+    // Mapping to store loans by address, collection, tokenId for easier access
+    mapping(address => mapping(address => mapping(uint256 => uint256))) public loans;
 
     // Receive ETH for liquidity
     receive() external payable {}

@@ -316,7 +316,7 @@ describe("Mosaical MVP Test Suite", function () {
         sellPrice
       );
 
-      const totalCost = sellAmount * sellPrice;
+      const totalCost = (sellAmount * sellPrice) / (10n ** 18n);
       await dpoToken.connect(lender).placeBuyOrder(
         collectionAddress,
         1,
@@ -601,7 +601,7 @@ describe("Mosaical MVP Test Suite", function () {
         sellPrice
       );
 
-      const totalCost = sellAmount * sellPrice;
+      const totalCost = (sellAmount * sellPrice) / (10n ** 18n);
       await dpoToken.connect(lender).placeBuyOrder(
         collectionAddress,
         1,
