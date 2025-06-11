@@ -303,7 +303,7 @@ describe("Mosaical MVP Test Suite", function () {
       );
 
       // Place sell order
-      const sellAmount = dpoBalance.div(2);
+      const sellAmount = dpoBalance / 3n;
       const sellPrice = ethers.parseEther("0.001");
 
       await dpoToken.connect(borrower).placeSellOrder(
@@ -313,8 +313,7 @@ describe("Mosaical MVP Test Suite", function () {
         sellPrice
       );
 
-      // Place matching buy order
-      const totalCost = sellAmount.mul(sellPrice);
+      const totalCost = sellAmount * sellPrice;
       await dpoToken.connect(lender).placeBuyOrder(
         collectionAddress,
         1,
@@ -589,7 +588,7 @@ describe("Mosaical MVP Test Suite", function () {
       expect(dpoBalance).to.be.gt(0);
 
       // 5. Trade DPO tokens
-      const sellAmount = dpoBalance.div(3);
+      const sellAmount = dpoBalance / 3n;
       const sellPrice = ethers.parseEther("0.001");
 
       await dpoToken.connect(borrower).placeSellOrder(
@@ -599,7 +598,7 @@ describe("Mosaical MVP Test Suite", function () {
         sellPrice
       );
 
-      const totalCost = sellAmount.mul(sellPrice);
+      const totalCost = sellAmount * sellPrice;
       await dpoToken.connect(lender).placeBuyOrder(
         collectionAddress,
         1,
