@@ -51,6 +51,12 @@ describe("Mosaical MVP Test Suite", function () {
     );
     await loanManager.waitForDeployment();
 
+    // Deploy MosaicalSagaBridge
+    const MosaicalSagaBridge = await ethers.getContractFactory("MosaicalSagaBridge");
+    const mockLayerZeroEndpoint = "0x1234567890123456789012345678901234567890";
+    bridge = await MosaicalSagaBridge.deploy(mockLayerZeroEndpoint); // Mock LayerZero endpoint
+    await bridge.waitForDeployment();
+
     // Setup test data
     await nftVault.addSupportedCollection(collectionAddress);
     await nftVault.setGameCategory(collectionAddress, 1); // RPG
@@ -408,7 +414,6 @@ describe("Mosaical MVP Test Suite", function () {
       expect(metrics.holders).to.equal(10000);
       expect(metrics.isGameFi).to.be.true;
     });
-  });
 
   describe("Bridge System", function () {
     it("Should setup Saga chainlet mappings", async function () {
