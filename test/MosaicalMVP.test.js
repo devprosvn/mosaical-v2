@@ -232,11 +232,14 @@ describe("Mosaical MVP Test Suite", function () {
       // Advance time for interest accrual
       await time.increase(time.duration.days(30));
 
-      // Get total owed using view function
-      const totalOwed = await loanManager.getAccruedInterest(borrower.address, collectionAddress, 1);
+      // Get just the interest owed
+      const interestOwed = await loanManager.getAccruedInterest(borrower.address, collectionAddress, 1);
 
-      // Add generous buffer to ensure we cover all accrued interest regardless of timing
-      const amountToPay = totalOwed + ethers.parseEther("1");
+      // Principal was the borrowAmount above
+      const principal = borrowAmount;
+
+      // Build total = principal + interest + buffer
+      const amountToPay = principal + interestOwed + ethers.parseEther("1");
 
       // Repay loan
       await loanManager.connect(borrower).repay(
@@ -626,10 +629,10 @@ describe("Mosaical MVP Test Suite", function () {
       await dpoToken.connect(lender).claimInterest(collectionAddress, 1);
 
       // 9. Repay loan
-      const totalOwed = await loanManager.getAccruedInterest(borrower.address, collectionAddress, 1);
+      const interestOwed = await loanManager.getAccruedInterest(borrower.address, collectionAddress, 1);
 
-      // Add generous buffer to ensure we cover all accrued interest regardless of timing
-      const amountToPay = totalOwed + ethers.parseEther("1");
+      // Re-use the same borrowAmount from step 3
+      const amountToPay = borrowAmount + interestOwed + ethers.parseEther("1");
 
       await loanManager.connect(borrower).repay(
         collectionAddress,
