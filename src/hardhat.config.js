@@ -1,6 +1,6 @@
 
 require("@nomicfoundation/hardhat-toolbox");
-require("@nomiclabs/hardhat-etherscan");
+require("@nomicfoundation/hardhat-verify");
 require('dotenv').config();
 
 /** @type import('hardhat/config').HardhatUserConfig */
@@ -19,28 +19,39 @@ module.exports = {
       url: process.env.RPC_URL || "https://mosaical-2745549204473000-1.jsonrpc.sagarpc.io",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 2745549204473000,
-      gasPrice: "auto", // Fixed gas price is disabled on this chainlet
+      gasPrice: "auto",
       timeout: 60000
     },
     mosaical: {
       url: "https://mosaical-2745549204473000-1.jsonrpc.sagarpc.io",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
-      chainId: 2745549204473000
+      chainId: 2745549204473000,
+      gasPrice: "auto",
+      timeout: 60000
     },
     hardhat: {
       chainId: 1337,
       accounts: {
-        accountsBalance: "10000000000000000000000000" // Very large balance for local testing
+        accountsBalance: "10000000000000000000000000"
       }
     }
   },
   etherscan: {
     apiKey: {
-      mosaical: "empty"        // Explorer doesn't require key
+      saga: "empty",
+      mosaical: "empty"
     },
     customChains: [
       {
-        network: "mosaical",
+        network: "saga",
+        chainId: 2745549204473000,
+        urls: {
+          apiURL: "https://api-mosaical-2745549204473000-1.sagaexplorer.io/api",
+          browserURL: "https://mosaical-2745549204473000-1.sagaexplorer.io"
+        }
+      },
+      {
+        network: "mosaical", 
         chainId: 2745549204473000,
         urls: {
           apiURL: "https://api-mosaical-2745549204473000-1.sagaexplorer.io/api",
@@ -51,7 +62,7 @@ module.exports = {
   },
   paths: {
     sources: "./contracts",
-    tests: "./test",
+    tests: "./test", 
     cache: "./cache",
     artifacts: "./artifacts"
   }
