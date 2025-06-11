@@ -6,216 +6,252 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+
+interface IGameFiOracle {
+    function getFloorPrice(address collection) external view returns (uint256);
+    function getUtilityScore(address collection, uint256 tokenId) external view returns (uint256);
+    function isActiveAsset(address collection, uint256 tokenId) external view returns (bool);
+}
 
 contract NFTVaultV3 is Ownable, ReentrancyGuard {
-    mapping(address => mapping(address => mapping(uint256 => bool))) public deposits;
-    mapping(address => bool) public supportedChainlets;
-    mapping(address => mapping(address => bool)) public supportedCollections;
-    mapping(address => uint8) public gameCategory;
-    mapping(address => mapping(uint256 => bytes)) public nftMetadataCache;
-    mapping(address => uint8) public collectionRiskTier;
+    using SafeMath for uint256;
     
-    struct RiskModel {
-        uint256 baseLTV;
-        uint256 liquidationThreshold;
-        uint256 maxUtilityBonus;
-        uint256 minCollateralAmount;
+    IGameFiOracle public oracle;
+    
+    // Core data structures
+    struct NFTDeposit {
+        address owner;
+        uint256 depositTime;
+        bool isActive;
     }
     
-    mapping(uint8 => RiskModel) public riskModels;
-    
-    struct NFTData {
-        address collection;
-        uint256 tokenId;
-        uint8 gameTier;
-        uint256 utilityScore;
-        bool isStaked;
-        uint256 lastActivityTimestamp;
+    struct Loan {
+        uint256 amount;
+        uint256 startTime;
+        uint256 interestRate; // basis points (100 = 1%)
+        bool isActive;
     }
     
-    mapping(address => mapping(uint256 => NFTData)) public nftData;
+    struct CollectionConfig {
+        bool isSupported;
+        uint256 maxLTV; // basis points (7000 = 70%)
+        uint256 liquidationThreshold; // basis points
+        uint256 baseInterestRate; // basis points
+    }
     
-    address public oracle;
-    address public loanManager;
+    // Mappings
+    mapping(address => mapping(uint256 => NFTDeposit)) public deposits;
+    mapping(address => mapping(uint256 => Loan)) public loans;
+    mapping(address => CollectionConfig) public collectionConfigs;
+    mapping(address => uint256) public userETHBalances;
     
-    event NFTDeposited(address indexed user, address indexed collection, uint256 indexed tokenId, uint256 utilityScore, uint8 gameTier);
+    // Constants
+    uint256 public constant LIQUIDATION_PENALTY = 1000; // 10%
+    uint256 public constant BASIS_POINTS = 10000;
+    uint256 public constant SECONDS_PER_YEAR = 365 days;
+    
+    // Events
+    event NFTDeposited(address indexed user, address indexed collection, uint256 indexed tokenId);
     event NFTWithdrawn(address indexed user, address indexed collection, uint256 indexed tokenId);
-    event RiskTierUpdated(address indexed collection, uint8 tier);
-    event RiskModelUpdated(uint8 tier, uint256 baseLTV, uint256 liquidationThreshold, uint256 maxUtilityBonus);
+    event LoanCreated(address indexed user, address indexed collection, uint256 indexed tokenId, uint256 amount);
+    event LoanRepaid(address indexed user, address indexed collection, uint256 indexed tokenId, uint256 amount);
+    event CollectionAdded(address indexed collection, uint256 maxLTV, uint256 liquidationThreshold);
+    event Liquidation(address indexed collection, uint256 indexed tokenId, uint256 debtAmount, uint256 salePrice);
     
-    constructor() Ownable(msg.sender) {
-        // Initialize default risk models
-        riskModels[1] = RiskModel({
-            baseLTV: 70,
-            liquidationThreshold: 80,
-            maxUtilityBonus: 20,
-            minCollateralAmount: 0.1 ether
-        });
-        
-        riskModels[2] = RiskModel({
-            baseLTV: 65,
-            liquidationThreshold: 75,
-            maxUtilityBonus: 15,
-            minCollateralAmount: 0.25 ether
-        });
-        
-        riskModels[3] = RiskModel({
-            baseLTV: 60,
-            liquidationThreshold: 70,
-            maxUtilityBonus: 10,
-            minCollateralAmount: 0.5 ether
-        });
-        
-        riskModels[4] = RiskModel({
-            baseLTV: 50,
-            liquidationThreshold: 65,
-            maxUtilityBonus: 10,
-            minCollateralAmount: 1 ether
-        });
-        
-        riskModels[5] = RiskModel({
-            baseLTV: 40,
-            liquidationThreshold: 55,
-            maxUtilityBonus: 5,
-            minCollateralAmount: 2 ether
-        });
+    constructor(address _oracle) {
+        oracle = IGameFiOracle(_oracle);
     }
     
-    function initialize(address _oracle, address _loanManager) external onlyOwner {
-        oracle = _oracle;
-        loanManager = _loanManager;
+    // Admin functions
+    function addSupportedCollection(
+        address collection,
+        uint256 maxLTV,
+        uint256 liquidationThreshold,
+        uint256 baseInterestRate
+    ) external onlyOwner {
+        require(maxLTV <= 8000, "Max LTV too high"); // Max 80%
+        require(liquidationThreshold >= maxLTV, "Invalid liquidation threshold");
+        
+        collectionConfigs[collection] = CollectionConfig({
+            isSupported: true,
+            maxLTV: maxLTV,
+            liquidationThreshold: liquidationThreshold,
+            baseInterestRate: baseInterestRate
+        });
+        
+        emit CollectionAdded(collection, maxLTV, liquidationThreshold);
     }
     
+    function addSupportedCollection(address collection) external onlyOwner {
+        addSupportedCollection(collection, 7000, 8500, 500); // 70% LTV, 85% liquidation, 5% interest
+    }
+    
+    function updateOracle(address _oracle) external onlyOwner {
+        oracle = IGameFiOracle(_oracle);
+    }
+    
+    // Core NFT functions
     function depositNFT(address collection, uint256 tokenId) external nonReentrant {
-        require(isGameFiNFT(collection), "Not a supported GameFi NFT");
+        require(collectionConfigs[collection].isSupported, "Collection not supported");
+        require(IERC721(collection).ownerOf(tokenId) == msg.sender, "Not NFT owner");
         
+        // Transfer NFT to vault
         IERC721(collection).transferFrom(msg.sender, address(this), tokenId);
-        deposits[msg.sender][collection][tokenId] = true;
         
-        NFTData memory data = parseNFTGameData(collection, tokenId);
-        nftData[collection][tokenId] = data;
+        deposits[collection][tokenId] = NFTDeposit({
+            owner: msg.sender,
+            depositTime: block.timestamp,
+            isActive: true
+        });
         
-        emit NFTDeposited(msg.sender, collection, tokenId, data.utilityScore, data.gameTier);
+        emit NFTDeposited(msg.sender, collection, tokenId);
     }
     
     function withdrawNFT(address collection, uint256 tokenId) external nonReentrant {
-        require(deposits[msg.sender][collection][tokenId], "Not your NFT");
-        require(getLoanAmount(msg.sender, collection, tokenId) == 0, "Loan exists");
+        NFTDeposit storage deposit = deposits[collection][tokenId];
+        require(deposit.owner == msg.sender, "Not your NFT");
+        require(deposit.isActive, "NFT not active");
+        require(!loans[collection][tokenId].isActive, "Active loan exists");
         
-        deposits[msg.sender][collection][tokenId] = false;
+        deposit.isActive = false;
         IERC721(collection).transferFrom(address(this), msg.sender, tokenId);
         
         emit NFTWithdrawn(msg.sender, collection, tokenId);
     }
     
-    function parseNFTGameData(address collection, uint256 tokenId) internal returns (NFTData memory) {
-        NFTData memory data;
-        data.collection = collection;
-        data.tokenId = tokenId;
+    // Lending functions
+    function borrow(address collection, uint256 tokenId, uint256 amount) external nonReentrant {
+        NFTDeposit storage deposit = deposits[collection][tokenId];
+        require(deposit.owner == msg.sender, "Not your NFT");
+        require(deposit.isActive, "NFT not deposited");
+        require(!loans[collection][tokenId].isActive, "Active loan exists");
         
-        string memory tokenURI = IERC721Metadata(collection).tokenURI(tokenId);
-        nftMetadataCache[collection][tokenId] = bytes(tokenURI);
+        uint256 maxBorrow = getMaxBorrowAmount(collection, tokenId);
+        require(amount <= maxBorrow, "Amount exceeds max borrow");
+        require(address(this).balance >= amount, "Insufficient vault liquidity");
         
-        // Get utility score from oracle
-        data.utilityScore = getUtilityScore(collection, tokenId);
-        data.gameTier = 1; // Default tier
-        data.isStaked = false;
-        data.lastActivityTimestamp = block.timestamp;
-        
-        return data;
-    }
-    
-    function getUtilityScore(address collection, uint256 tokenId) internal view returns (uint256) {
-        // In production, would call oracle
-        // For now, return default
-        return 100;
-    }
-    
-    function getMaxLTV(address collection, uint256 tokenId) public view returns (uint256) {
-        uint8 tier = collectionRiskTier[collection];
-        if (tier == 0) tier = 3; // Default to middle tier
-        
-        RiskModel memory model = riskModels[tier];
-        
-        uint256 utilityScore = nftData[collection][tokenId].utilityScore;
-        if (utilityScore == 0) utilityScore = 100;
-        
-        uint256 utilityBonus = 0;
-        if (utilityScore > 100) {
-            utilityBonus = ((utilityScore - 100) * model.maxUtilityBonus) / 100;
-            if (utilityBonus > model.maxUtilityBonus) {
-                utilityBonus = model.maxUtilityBonus;
-            }
-        }
-        
-        return model.baseLTV + utilityBonus;
-    }
-    
-    function isGameFiNFT(address collection) public view returns (bool) {
-        address chainlet = getChainletFromCollection(collection);
-        return supportedChainlets[chainlet] && 
-               supportedCollections[chainlet][collection] &&
-               gameCategory[collection] > 0;
-    }
-    
-    function getChainletFromCollection(address collection) internal view returns (address) {
-        // Simplified implementation - extract chainlet from collection address pattern
-        return address(uint160(collection) & 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000);
-    }
-    
-    function getLoanAmount(address user, address collection, uint256 tokenId) internal view returns (uint256) {
-        // Call loan manager to get loan amount
-        if (loanManager == address(0)) return 0;
-        
-        (bool success, bytes memory data) = loanManager.staticcall(
-            abi.encodeWithSignature("loans(address,address,uint256)", user, collection, tokenId)
-        );
-        
-        if (success && data.length == 32) {
-            return abi.decode(data, (uint256));
-        }
-        
-        return 0;
-    }
-    
-    function addSupportedChainlet(address chainlet) external onlyOwner {
-        supportedChainlets[chainlet] = true;
-    }
-    
-    function addSupportedCollection(address chainlet, address collection) external onlyOwner {
-        require(supportedChainlets[chainlet], "Chainlet not supported");
-        supportedCollections[chainlet][collection] = true;
-    }
-    
-    function setGameCategory(address collection, uint8 category) external onlyOwner {
-        require(category > 0 && category <= 10, "Invalid game category");
-        gameCategory[collection] = category;
-    }
-    
-    function setCollectionRiskTier(address collection, uint8 tier) external onlyOwner {
-        require(tier >= 1 && tier <= 5, "Invalid risk tier");
-        collectionRiskTier[collection] = tier;
-        emit RiskTierUpdated(collection, tier);
-    }
-    
-    function updateRiskModel(
-        uint8 tier,
-        uint256 baseLTV,
-        uint256 liquidationThreshold,
-        uint256 maxUtilityBonus,
-        uint256 minCollateralAmount
-    ) external onlyOwner {
-        require(tier >= 1 && tier <= 5, "Invalid risk tier");
-        require(baseLTV < liquidationThreshold, "LTV must be < liquidation threshold");
-        require(liquidationThreshold <= 90, "Liquidation threshold too high");
-        
-        riskModels[tier] = RiskModel({
-            baseLTV: baseLTV,
-            liquidationThreshold: liquidationThreshold,
-            maxUtilityBonus: maxUtilityBonus,
-            minCollateralAmount: minCollateralAmount
+        CollectionConfig memory config = collectionConfigs[collection];
+        loans[collection][tokenId] = Loan({
+            amount: amount,
+            startTime: block.timestamp,
+            interestRate: config.baseInterestRate,
+            isActive: true
         });
         
-        emit RiskModelUpdated(tier, baseLTV, liquidationThreshold, maxUtilityBonus);
+        userETHBalances[msg.sender] = userETHBalances[msg.sender].add(amount);
+        
+        emit LoanCreated(msg.sender, collection, tokenId, amount);
     }
+    
+    function repayLoan(address collection, uint256 tokenId) external payable nonReentrant {
+        Loan storage loan = loans[collection][tokenId];
+        NFTDeposit storage deposit = deposits[collection][tokenId];
+        
+        require(deposit.owner == msg.sender, "Not your NFT");
+        require(loan.isActive, "No active loan");
+        
+        uint256 totalDebt = getTotalDebt(collection, tokenId);
+        require(msg.value >= totalDebt, "Insufficient payment");
+        
+        loan.isActive = false;
+        
+        // Refund excess payment
+        if (msg.value > totalDebt) {
+            payable(msg.sender).transfer(msg.value.sub(totalDebt));
+        }
+        
+        emit LoanRepaid(msg.sender, collection, tokenId, totalDebt);
+    }
+    
+    function withdrawETH(uint256 amount) external nonReentrant {
+        require(userETHBalances[msg.sender] >= amount, "Insufficient balance");
+        userETHBalances[msg.sender] = userETHBalances[msg.sender].sub(amount);
+        payable(msg.sender).transfer(amount);
+    }
+    
+    // Liquidation
+    function liquidate(address collection, uint256 tokenId) external nonReentrant {
+        Loan storage loan = loans[collection][tokenId];
+        require(loan.isActive, "No active loan");
+        
+        uint256 currentLTV = getCurrentLTV(collection, tokenId);
+        uint256 liquidationThreshold = collectionConfigs[collection].liquidationThreshold;
+        require(currentLTV >= liquidationThreshold, "Not liquidatable");
+        
+        uint256 totalDebt = getTotalDebt(collection, tokenId);
+        uint256 floorPrice = oracle.getFloorPrice(collection);
+        uint256 salePrice = floorPrice.mul(BASIS_POINTS.sub(LIQUIDATION_PENALTY)).div(BASIS_POINTS);
+        
+        loan.isActive = false;
+        deposits[collection][tokenId].isActive = false;
+        
+        // Transfer NFT to liquidator (simplified - in production would use auction)
+        IERC721(collection).transferFrom(address(this), msg.sender, tokenId);
+        
+        emit Liquidation(collection, tokenId, totalDebt, salePrice);
+    }
+    
+    // View functions
+    function getMaxBorrowAmount(address collection, uint256 tokenId) public view returns (uint256) {
+        if (!oracle.isActiveAsset(collection, tokenId)) return 0;
+        
+        uint256 floorPrice = oracle.getFloorPrice(collection);
+        uint256 utilityScore = oracle.getUtilityScore(collection, tokenId);
+        uint256 maxLTV = collectionConfigs[collection].maxLTV;
+        
+        // Adjust LTV based on utility score (higher utility = higher LTV)
+        uint256 adjustedLTV = maxLTV.add(utilityScore.mul(500).div(100)); // Max 5% bonus
+        if (adjustedLTV > 8000) adjustedLTV = 8000; // Cap at 80%
+        
+        return floorPrice.mul(adjustedLTV).div(BASIS_POINTS);
+    }
+    
+    function getTotalDebt(address collection, uint256 tokenId) public view returns (uint256) {
+        Loan memory loan = loans[collection][tokenId];
+        if (!loan.isActive) return 0;
+        
+        uint256 timeElapsed = block.timestamp.sub(loan.startTime);
+        uint256 interest = loan.amount.mul(loan.interestRate).mul(timeElapsed).div(BASIS_POINTS).div(SECONDS_PER_YEAR);
+        
+        return loan.amount.add(interest);
+    }
+    
+    function getCurrentLTV(address collection, uint256 tokenId) public view returns (uint256) {
+        if (!loans[collection][tokenId].isActive) return 0;
+        
+        uint256 totalDebt = getTotalDebt(collection, tokenId);
+        uint256 floorPrice = oracle.getFloorPrice(collection);
+        
+        if (floorPrice == 0) return BASIS_POINTS; // 100% if no price data
+        return totalDebt.mul(BASIS_POINTS).div(floorPrice);
+    }
+    
+    function getUserPosition(address user, address collection, uint256 tokenId) 
+        external view returns (
+            bool hasDeposit,
+            bool hasLoan,
+            uint256 loanAmount,
+            uint256 totalDebt,
+            uint256 maxBorrow,
+            uint256 currentLTV
+        ) {
+        NFTDeposit memory deposit = deposits[collection][tokenId];
+        Loan memory loan = loans[collection][tokenId];
+        
+        hasDeposit = deposit.owner == user && deposit.isActive;
+        hasLoan = loan.isActive;
+        loanAmount = loan.amount;
+        totalDebt = getTotalDebt(collection, tokenId);
+        maxBorrow = getMaxBorrowAmount(collection, tokenId);
+        currentLTV = getCurrentLTV(collection, tokenId);
+    }
+    
+    // Emergency functions
+    function emergencyWithdraw(address collection, uint256 tokenId) external onlyOwner {
+        IERC721(collection).transferFrom(address(this), owner(), tokenId);
+    }
+    
+    // Receive ETH for liquidity
+    receive() external payable {}
 }

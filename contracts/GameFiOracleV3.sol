@@ -4,249 +4,289 @@ pragma solidity ^0.8.21;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-
-interface IAIPricePredictor {
-    function predictNFTPrice(address collection, uint256 tokenId) external view returns (uint256 price, uint256 confidence);
-}
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 contract GameFiOracleV3 is Ownable, ReentrancyGuard {
-    mapping(address => uint256) public collectionFloorPrices;
-    mapping(address => mapping(uint256 => uint256)) public nftUtilityScores;
+    using SafeMath for uint256;
     
-    struct PricePoint {
-        uint256 timestamp;
-        uint256 price;
+    struct PriceData {
+        uint256 floorPrice;
+        uint256 lastUpdate;
+        bool isActive;
     }
     
-    mapping(address => PricePoint[30]) public priceHistory;
-    mapping(address => uint8) public historyIndex;
-    mapping(address => uint256) public collectionVolatility;
-    
-    struct PriceSource {
-        string name;
-        uint256 weight;
-        uint256 reliability;
-        uint256 lastUpdateTimestamp;
+    struct UtilityData {
+        uint256 score; // 0-100 scale
+        uint256 lastUpdate;
+        bool isActive;
     }
     
-    mapping(address => PriceSource[]) public priceSources;
-    
-    struct GameMetrics {
-        uint256 activeUsers;
-        uint256 avgPlaytime;
-        uint256 revenue;
-        uint256 retention;
+    struct CollectionMetrics {
+        uint256 volume24h;
+        uint256 holders;
+        uint256 listingCount;
+        uint256 avgHoldTime;
+        bool isGameFi;
     }
     
-    mapping(address => GameMetrics) public gameMetrics;
-    mapping(address => uint256) public predictionConfidence;
+    // Core mappings
+    mapping(address => PriceData) public priceData;
+    mapping(address => mapping(uint256 => UtilityData)) public utilityData;
+    mapping(address => CollectionMetrics) public collectionMetrics;
+    mapping(address => bool) public authorizedUpdaters;
     
-    address public aiPricePredictionSystem;
-    mapping(address => bool) public authorizedFeeders;
-    mapping(address => uint256) public lastPriceUpdateTime;
-    uint256 public constant RATE_LIMIT_DURATION = 3600; // 1 hour
+    // Constants
+    uint256 public constant PRICE_STALENESS_THRESHOLD = 1 hours;
+    uint256 public constant UTILITY_STALENESS_THRESHOLD = 6 hours;
+    uint256 public constant MIN_UTILITY_SCORE = 1;
+    uint256 public constant MAX_UTILITY_SCORE = 100;
     
-    event FloorPriceUpdated(address indexed collection, uint256 price, uint256 previousPrice);
-    event VolatilityUpdated(address indexed collection, uint256 volatility);
-    event GameMetricsUpdated(address indexed collection, uint256 activeUsers, uint256 avgPlaytime, uint256 revenue, uint256 retention);
-    event PredictionConfidenceUpdated(address indexed collection, uint256 confidence);
+    // Events
+    event PriceUpdated(address indexed collection, uint256 newPrice, uint256 timestamp);
+    event UtilityUpdated(address indexed collection, uint256 indexed tokenId, uint256 score);
+    event CollectionMetricsUpdated(address indexed collection, uint256 volume, uint256 holders);
+    event UpdaterAuthorized(address indexed updater, bool authorized);
     
-    constructor() Ownable(msg.sender) {}
-    
-    function initialize() external onlyOwner {
-        // Initialize with admin as authorized feeder
-        authorizedFeeders[msg.sender] = true;
+    modifier onlyAuthorized() {
+        require(authorizedUpdaters[msg.sender] || msg.sender == owner(), "Not authorized");
+        _;
     }
     
-    function setAIPredictionSystem(address _aiSystem) external onlyOwner {
-        aiPricePredictionSystem = _aiSystem;
+    constructor() {
+        authorizedUpdaters[msg.sender] = true;
     }
     
-    function setCollectionFloorPrice(address collection, uint256 price) external onlyAuthorizedFeeder {
-        require(block.timestamp >= lastPriceUpdateTime[collection] + RATE_LIMIT_DURATION, "Rate limited");
+    // Admin functions
+    function authorizeUpdater(address updater, bool authorized) external onlyOwner {
+        authorizedUpdaters[updater] = authorized;
+        emit UpdaterAuthorized(updater, authorized);
+    }
+    
+    // Price management
+    function updateFloorPrice(address collection, uint256 price) external onlyAuthorized {
+        require(price > 0, "Invalid price");
         
-        uint256 prevPrice = collectionFloorPrices[collection];
-        collectionFloorPrices[collection] = price;
-        lastPriceUpdateTime[collection] = block.timestamp;
-        
-        uint8 index = historyIndex[collection];
-        priceHistory[collection][index] = PricePoint({
-            timestamp: block.timestamp,
-            price: price
+        priceData[collection] = PriceData({
+            floorPrice: price,
+            lastUpdate: block.timestamp,
+            isActive: true
         });
         
-        historyIndex[collection] = (index + 1) % 30;
-        
-        if (prevPrice > 0) {
-            updateVolatility(collection);
-        }
-        
-        emit FloorPriceUpdated(collection, price, prevPrice);
+        emit PriceUpdated(collection, price, block.timestamp);
     }
     
-    function updateVolatility(address collection) internal {
-        uint256 oldestTimestamp = type(uint256).max;
-        uint256 newestTimestamp = 0;
-        uint256 oldestPrice = 0;
-        uint256 newestPrice = 0;
+    function batchUpdatePrices(
+        address[] calldata collections,
+        uint256[] calldata prices
+    ) external onlyAuthorized {
+        require(collections.length == prices.length, "Array length mismatch");
         
-        for (uint8 i = 0; i < 30; i++) {
-            PricePoint memory pp = priceHistory[collection][i];
-            if (pp.timestamp == 0) continue;
-            
-            if (pp.timestamp < oldestTimestamp) {
-                oldestTimestamp = pp.timestamp;
-                oldestPrice = pp.price;
-            }
-            
-            if (pp.timestamp > newestTimestamp) {
-                newestTimestamp = pp.timestamp;
-                newestPrice = pp.price;
+        for (uint256 i = 0; i < collections.length; i++) {
+            if (prices[i] > 0) {
+                priceData[collections[i]] = PriceData({
+                    floorPrice: prices[i],
+                    lastUpdate: block.timestamp,
+                    isActive: true
+                });
+                
+                emit PriceUpdated(collections[i], prices[i], block.timestamp);
             }
         }
-        
-        if (oldestTimestamp == newestTimestamp) return;
-        
-        uint256 timespan = newestTimestamp - oldestTimestamp;
-        if (timespan < 1 days) return;
-        
-        uint256 avgPrice = (oldestPrice + newestPrice) / 2;
-        uint256 maxDeviation = 0;
-        
-        for (uint8 i = 0; i < 30; i++) {
-            PricePoint memory pp = priceHistory[collection][i];
-            if (pp.timestamp == 0) continue;
-            
-            uint256 deviation;
-            if (pp.price > avgPrice) {
-                deviation = ((pp.price - avgPrice) * 10000) / avgPrice;
-            } else {
-                deviation = ((avgPrice - pp.price) * 10000) / avgPrice;
-            }
-            
-            if (deviation > maxDeviation) {
-                maxDeviation = deviation;
-            }
-        }
-        
-        uint256 daysInSample = timespan / 1 days;
-        uint256 dailyVolatility = maxDeviation / daysInSample;
-        
-        collectionVolatility[collection] = dailyVolatility;
-        
-        emit VolatilityUpdated(collection, dailyVolatility);
     }
     
-    function getNFTPrice(address collection, uint256 tokenId) external view returns (uint256) {
-        uint256 floorPrice = collectionFloorPrices[collection];
-        uint256 utilityScore = nftUtilityScores[collection][tokenId];
-        uint256 volatility = collectionVolatility[collection];
-        
-        if (utilityScore == 0) utilityScore = 100;
-        
-        uint256 basePrice = (floorPrice * utilityScore) / 100;
-        
-        // Try AI prediction if available
-        if (aiPricePredictionSystem != address(0)) {
-            try IAIPricePredictor(aiPricePredictionSystem).predictNFTPrice(collection, tokenId) returns (uint256 aiPrice, uint256 confidence) {
-                if (confidence >= 70) {
-                    uint256 aiWeight = confidence * 100;
-                    basePrice = ((basePrice * (10000 - aiWeight)) + (aiPrice * aiWeight)) / 10000;
-                }
-            } catch {
-                // Fallback to standard pricing
-            }
-        }
-        
-        if (volatility > 0) {
-            uint256 volatilityDiscount = (volatility * 1000) / 5000;
-            if (volatilityDiscount > 1000) volatilityDiscount = 1000;
-            
-            basePrice = basePrice - ((basePrice * volatilityDiscount) / 10000);
-        }
-        
-        return basePrice;
-    }
-    
-    function setNFTUtilityScore(address collection, uint256 tokenId, uint256 score) external onlyAuthorizedFeeder {
-        nftUtilityScores[collection][tokenId] = score;
-    }
-    
-    function updateGameMetrics(
+    // Utility scoring
+    function updateUtilityScore(
         address collection,
-        uint256 activeUsers,
-        uint256 avgPlaytime,
-        uint256 revenue,
-        uint256 retention
-    ) external onlyAuthorizedFeeder {
-        gameMetrics[collection] = GameMetrics({
-            activeUsers: activeUsers,
-            avgPlaytime: avgPlaytime,
-            revenue: revenue,
-            retention: retention
+        uint256 tokenId,
+        uint256 score
+    ) external onlyAuthorized {
+        require(score >= MIN_UTILITY_SCORE && score <= MAX_UTILITY_SCORE, "Invalid score");
+        
+        utilityData[collection][tokenId] = UtilityData({
+            score: score,
+            lastUpdate: block.timestamp,
+            isActive: true
         });
         
-        emit GameMetricsUpdated(collection, activeUsers, avgPlaytime, revenue, retention);
+        emit UtilityUpdated(collection, tokenId, score);
     }
     
-    function getGameEngagementFactor(address collection) public view returns (uint256) {
-        GameMetrics memory metrics = gameMetrics[collection];
+    function batchUpdateUtilityScores(
+        address[] calldata collections,
+        uint256[] calldata tokenIds,
+        uint256[] calldata scores
+    ) external onlyAuthorized {
+        require(
+            collections.length == tokenIds.length && 
+            collections.length == scores.length,
+            "Array length mismatch"
+        );
         
-        if (metrics.activeUsers == 0) return 50;
-        
-        uint256 userScore = 0;
-        if (metrics.activeUsers >= 100000) userScore = 30;
-        else if (metrics.activeUsers >= 50000) userScore = 25;
-        else if (metrics.activeUsers >= 10000) userScore = 20;
-        else if (metrics.activeUsers >= 5000) userScore = 15;
-        else if (metrics.activeUsers >= 1000) userScore = 10;
-        else userScore = 5;
-        
-        uint256 playtimeScore = 0;
-        if (metrics.avgPlaytime >= 120) playtimeScore = 20;
-        else if (metrics.avgPlaytime >= 60) playtimeScore = 15;
-        else if (metrics.avgPlaytime >= 30) playtimeScore = 10;
-        else playtimeScore = 5;
-        
-        uint256 revenueScore = 0;
-        if (metrics.revenue >= 100000) revenueScore = 30;
-        else if (metrics.revenue >= 50000) revenueScore = 25;
-        else if (metrics.revenue >= 10000) revenueScore = 20;
-        else if (metrics.revenue >= 5000) revenueScore = 15;
-        else if (metrics.revenue >= 1000) revenueScore = 10;
-        else revenueScore = 5;
-        
-        uint256 retentionScore = 0;
-        if (metrics.retention >= 8000) retentionScore = 20;
-        else if (metrics.retention >= 6000) retentionScore = 15;
-        else if (metrics.retention >= 4000) retentionScore = 10;
-        else retentionScore = 5;
-        
-        return userScore + playtimeScore + revenueScore + retentionScore;
+        for (uint256 i = 0; i < collections.length; i++) {
+            if (scores[i] >= MIN_UTILITY_SCORE && scores[i] <= MAX_UTILITY_SCORE) {
+                utilityData[collections[i]][tokenIds[i]] = UtilityData({
+                    score: scores[i],
+                    lastUpdate: block.timestamp,
+                    isActive: true
+                });
+                
+                emit UtilityUpdated(collections[i], tokenIds[i], scores[i]);
+            }
+        }
     }
     
-    function updatePredictionConfidence(address collection, uint256 confidence) external onlyAISystem {
-        require(confidence <= 100, "Confidence must be 0-100");
-        predictionConfidence[collection] = confidence;
+    // Collection metrics
+    function updateCollectionMetrics(
+        address collection,
+        uint256 volume24h,
+        uint256 holders,
+        uint256 listingCount,
+        uint256 avgHoldTime,
+        bool isGameFi
+    ) external onlyAuthorized {
+        collectionMetrics[collection] = CollectionMetrics({
+            volume24h: volume24h,
+            holders: holders,
+            listingCount: listingCount,
+            avgHoldTime: avgHoldTime,
+            isGameFi: isGameFi
+        });
         
-        emit PredictionConfidenceUpdated(collection, confidence);
+        emit CollectionMetricsUpdated(collection, volume24h, holders);
     }
     
-    function setOracleFeeder(address feeder, bool authorized) external onlyOwner {
-        authorizedFeeders[feeder] = authorized;
+    // View functions
+    function getFloorPrice(address collection) external view returns (uint256) {
+        PriceData memory data = priceData[collection];
+        
+        if (!data.isActive) return 0;
+        if (block.timestamp.sub(data.lastUpdate) > PRICE_STALENESS_THRESHOLD) return 0;
+        
+        return data.floorPrice;
     }
     
-    function getPriceSourceCount(address collection) external view returns (uint256) {
-        return priceSources[collection].length;
+    function getUtilityScore(address collection, uint256 tokenId) external view returns (uint256) {
+        UtilityData memory data = utilityData[collection][tokenId];
+        
+        if (!data.isActive) {
+            // Return default score based on collection if no specific data
+            CollectionMetrics memory metrics = collectionMetrics[collection];
+            if (metrics.isGameFi) {
+                return _calculateDefaultUtilityScore(collection);
+            }
+            return MIN_UTILITY_SCORE;
+        }
+        
+        if (block.timestamp.sub(data.lastUpdate) > UTILITY_STALENESS_THRESHOLD) {
+            return MIN_UTILITY_SCORE;
+        }
+        
+        return data.score;
     }
     
-    modifier onlyAuthorizedFeeder() {
-        require(authorizedFeeders[msg.sender], "Not authorized feeder");
-        _;
+    function isActiveAsset(address collection, uint256 tokenId) external view returns (bool) {
+        // Check if we have recent price data
+        PriceData memory price = priceData[collection];
+        if (!price.isActive || block.timestamp.sub(price.lastUpdate) > PRICE_STALENESS_THRESHOLD) {
+            return false;
+        }
+        
+        // Check if collection is GameFi
+        CollectionMetrics memory metrics = collectionMetrics[collection];
+        if (!metrics.isGameFi) return false;
+        
+        // Check utility score (optional - asset is active even without specific utility data)
+        UtilityData memory utility = utilityData[collection][tokenId];
+        
+        return true;
     }
     
-    modifier onlyAISystem() {
-        require(msg.sender == aiPricePredictionSystem, "Not AI system");
-        _;
+    function getPriceInfo(address collection) external view returns (
+        uint256 floorPrice,
+        uint256 lastUpdate,
+        bool isActive,
+        bool isStale
+    ) {
+        PriceData memory data = priceData[collection];
+        floorPrice = data.floorPrice;
+        lastUpdate = data.lastUpdate;
+        isActive = data.isActive;
+        isStale = block.timestamp.sub(data.lastUpdate) > PRICE_STALENESS_THRESHOLD;
+    }
+    
+    function getUtilityInfo(address collection, uint256 tokenId) external view returns (
+        uint256 score,
+        uint256 lastUpdate,
+        bool isActive,
+        bool isStale
+    ) {
+        UtilityData memory data = utilityData[collection][tokenId];
+        score = data.isActive ? data.score : _calculateDefaultUtilityScore(collection);
+        lastUpdate = data.lastUpdate;
+        isActive = data.isActive;
+        isStale = data.isActive && block.timestamp.sub(data.lastUpdate) > UTILITY_STALENESS_THRESHOLD;
+    }
+    
+    function getCollectionHealth(address collection) external view returns (
+        uint256 healthScore, // 0-100
+        bool isLiquid,
+        bool hasRecentActivity
+    ) {
+        CollectionMetrics memory metrics = collectionMetrics[collection];
+        PriceData memory price = priceData[collection];
+        
+        if (!metrics.isGameFi || !price.isActive) {
+            return (0, false, false);
+        }
+        
+        // Calculate health based on various factors
+        uint256 volumeScore = metrics.volume24h > 1 ether ? 25 : (metrics.volume24h.mul(25).div(1 ether));
+        uint256 holderScore = metrics.holders > 1000 ? 25 : (metrics.holders.mul(25).div(1000));
+        uint256 liquidityScore = metrics.listingCount > 100 ? 25 : (metrics.listingCount.mul(25).div(100));
+        uint256 holdScore = metrics.avgHoldTime > 30 days ? 25 : (metrics.avgHoldTime.mul(25).div(30 days));
+        
+        healthScore = volumeScore.add(holderScore).add(liquidityScore).add(holdScore);
+        if (healthScore > 100) healthScore = 100;
+        
+        isLiquid = metrics.listingCount > 10 && metrics.volume24h > 0.1 ether;
+        hasRecentActivity = block.timestamp.sub(price.lastUpdate) < 1 hours;
+    }
+    
+    // Internal functions
+    function _calculateDefaultUtilityScore(address collection) internal view returns (uint256) {
+        CollectionMetrics memory metrics = collectionMetrics[collection];
+        
+        if (!metrics.isGameFi) return MIN_UTILITY_SCORE;
+        
+        // Base score for GameFi NFTs
+        uint256 baseScore = 30;
+        
+        // Bonus for high holder count (indicates popularity)
+        if (metrics.holders > 5000) baseScore = baseScore.add(20);
+        else if (metrics.holders > 1000) baseScore = baseScore.add(10);
+        
+        // Bonus for trading activity
+        if (metrics.volume24h > 10 ether) baseScore = baseScore.add(15);
+        else if (metrics.volume24h > 1 ether) baseScore = baseScore.add(5);
+        
+        // Bonus for liquidity
+        if (metrics.listingCount > 100) baseScore = baseScore.add(10);
+        
+        return baseScore > MAX_UTILITY_SCORE ? MAX_UTILITY_SCORE : baseScore;
+    }
+    
+    // Emergency functions
+    function emergencyPause(address collection, bool paused) external onlyOwner {
+        priceData[collection].isActive = !paused;
+    }
+    
+    function emergencyUpdatePrice(address collection, uint256 price) external onlyOwner {
+        priceData[collection] = PriceData({
+            floorPrice: price,
+            lastUpdate: block.timestamp,
+            isActive: true
+        });
+        
+        emit PriceUpdated(collection, price, block.timestamp);
     }
 }
