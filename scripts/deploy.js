@@ -4,8 +4,8 @@ const path = require('path');
 require('dotenv').config();
 
 async function deploy() {
-    console.log('🚀 Deploying contracts to Saga chainlet...');
-    console.log('Chainlet ID:', process.env.CHAINLET_ID || 'mosaical_2745549204473000-1');
+    console.log('🚀 Deploying contracts to devpros chainlet...');
+    console.log('Chainlet ID:', process.env.CHAINLET_ID || 'devpros_2749656616387000-1');
     console.log('RPC URL:', process.env.RPC_URL);
 
     try {
@@ -17,7 +17,7 @@ async function deploy() {
 
         // Check balance
         const balance = await provider.getBalance(wallet.address);
-        console.log('Account balance:', ethers.formatEther(balance), 'MOSAIC');
+        console.log('Account balance:', ethers.formatEther(balance), 'DPSV');
 
         // Read compiled contracts
         const contractsPath = path.join(__dirname, '../artifacts/contracts');
@@ -36,7 +36,7 @@ async function deploy() {
             path.join(contractsPath, 'GovernanceToken.sol/GovernanceToken.json')
         ));
         const govTokenFactory = new ethers.ContractFactory(GovernanceToken.abi, GovernanceToken.bytecode, wallet);
-        const govToken = await govTokenFactory.deploy("Mosaical Governance", "MSCLGOV");
+        const govToken = await govTokenFactory.deploy("Devpros Governance", "DPSGOV");
         await govToken.waitForDeployment();
         console.log('GovernanceToken deployed to:', await govToken.getAddress());
 
@@ -101,7 +101,7 @@ async function deploy() {
         // Save deployment info
         const deploymentInfo = {
             network: process.env.NETWORK,
-            chainletId: process.env.CHAINLET_ID || 'mosaical_2745549204473000-1',
+            chainletId: process.env.CHAINLET_ID || 'devpros_2749656616387000-1',
             rpcUrl: process.env.RPC_URL,
             blockExplorer: process.env.BLOCK_EXPLORER,
             timestamp: new Date().toISOString(),

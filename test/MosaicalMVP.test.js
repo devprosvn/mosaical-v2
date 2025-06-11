@@ -16,11 +16,11 @@ describe("Mosaical MVP Test Suite", function () {
     gameNFT = await MockGameNFT.deploy("Test Game NFT", "TGNFT");
     await gameNFT.waitForDeployment();
     collectionAddress = await gameNFT.getAddress();
-    chainletId = "mosaical_2745549204473000-1";
+    chainletId = "devpros_2749656616387000-1";
 
     // Deploy Governance Token
     const GovernanceToken = await ethers.getContractFactory("GovernanceToken");
-    governanceToken = await GovernanceToken.deploy("Mosaical Governance", "MSCLGOV");
+    governanceToken = await GovernanceToken.deploy("Devpros Governance", "DPSGOV");
     await governanceToken.waitForDeployment();
 
     // Deploy Core Contracts in correct order
@@ -424,19 +424,19 @@ describe("Mosaical MVP Test Suite", function () {
 
   describe("Bridge System", function () {
     it("Should setup Saga chainlet mappings", async function () {
-      const sagaChainletId = 2745549204473000; // Saga chainlet numeric ID
+      const devprosChainletId = 2749656616387000; // Devpros chainlet numeric ID
       const remoteCollectionAddress = "0x1234567890123456789012345678901234567890";
 
-      await bridge.addSupportedChainlet(sagaChainletId);
+      await bridge.addSupportedChainlet(devprosChainletId);
       await bridge.mapCollection(
         collectionAddress,
-        sagaChainletId,
+        devprosChainletId,
         remoteCollectionAddress
       );
 
       const mapping = await bridge.remoteMappings(
         collectionAddress,
-        sagaChainletId
+        devprosChainletId
       );
       expect(mapping).to.equal(remoteCollectionAddress);
     });
@@ -463,11 +463,11 @@ describe("Mosaical MVP Test Suite", function () {
       await gameNFT.mint(borrower.address, 10);
       await gameNFT.connect(borrower).approve(await bridge.getAddress(), 10);
 
-      const sagaChainletId = 2745549204473000;
-      await bridge.addSupportedChainlet(sagaChainletId);
+      const devprosChainletId = 2749656616387000;
+      await bridge.addSupportedChainlet(devprosChainletId);
       await bridge.mapCollection(
         collectionAddress,
-        sagaChainletId,
+        devprosChainletId,
         "0x1234567890123456789012345678901234567890"
       );
 
@@ -475,7 +475,7 @@ describe("Mosaical MVP Test Suite", function () {
         bridge.connect(borrower).bridgeNFT(
           collectionAddress,
           10,
-          sagaChainletId,
+          devprosChainletId,
           { value: ethers.parseEther("0.1") }
         )
       ).to.emit(bridge, "NFTBridgeInitiated");
@@ -550,9 +550,9 @@ describe("Mosaical MVP Test Suite", function () {
   });
 
   describe("Integration Tests", function () {
-    it("Should validate Saga chainlet configuration", async function () {
-      // Test that our contracts are configured for Saga chainlet
-      const expectedChainletId = "mosaical_2745549204473000-1";
+    it("Should validate devpros chainlet configuration", async function () {
+      // Test that our contracts are configured for devpros chainlet
+      const expectedChainletId = "devpros_2749656616387000-1";
       expect(chainletId).to.equal(expectedChainletId);
 
       // Verify genesis account has proper balance in test environment
@@ -560,9 +560,9 @@ describe("Mosaical MVP Test Suite", function () {
       expect(balance).to.be.gt(0);
 
       // Test cross-chainlet compatibility
-      const sagaNumericId = 2745549204473000;
-      await bridge.addSupportedChainlet(sagaNumericId);
-      expect(await bridge.supportedChainlets(sagaNumericId)).to.be.true;
+      const devprosNumericId = 2749656616387000;
+      await bridge.addSupportedChainlet(devprosNumericId);
+      expect(await bridge.supportedChainlets(devprosNumericId)).to.be.true;
     });
 
     it("Should complete full lending cycle", async function () {
