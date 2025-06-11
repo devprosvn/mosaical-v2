@@ -36,10 +36,7 @@ async function main() {
     console.log(`\n📝 Deploying ${contractInfo.name}...`);
     
     try {
-      // Get contract factory from the flattened contracts.sol
-      const ContractFactory = await hre.ethers.getContractFactory(contractInfo.name, {
-        sourceName: "contracts/contracts.sol"
-      });
+      const ContractFactory = await hre.ethers.getContractFactory(contractInfo.name);
       
       // Replace placeholder args with actual addresses
       let deployArgs = contractInfo.args.map(arg => {
@@ -58,17 +55,17 @@ async function main() {
       
       console.log(`✅ ${contractInfo.name} deployed to: ${contractAddress}`);
 
-      // Get contract artifact for JSON output from the flattened file
-      const artifactPath = path.join(__dirname, `../artifacts/contracts/contracts.sol/${contractInfo.name}.json`);
+      // Get contract artifact for JSON output
+      const artifactPath = path.join(__dirname, `../artifacts/contracts/${contractInfo.name}.sol/${contractInfo.name}.json`);
       if (fs.existsSync(artifactPath)) {
         const artifact = JSON.parse(fs.readFileSync(artifactPath, 'utf8'));
         
         // Add to contracts output following Solidity compiler format
-        if (!outputJson.contracts[`contracts/contracts.sol`]) {
-          outputJson.contracts[`contracts/contracts.sol`] = {};
+        if (!outputJson.contracts[`contracts/${contractInfo.name}.sol`]) {
+          outputJson.contracts[`contracts/${contractInfo.name}.sol`] = {};
         }
         
-        outputJson.contracts[`contracts/contracts.sol`][contractInfo.name] = {
+        outputJson.contracts[`contracts/${contractInfo.name}.sol`][contractInfo.name] = {
           abi: artifact.abi,
           evm: {
             bytecode: {
@@ -99,7 +96,7 @@ async function main() {
             },
             settings: {
               compilationTarget: {
-                [`contracts/contracts.sol`]: contractInfo.name
+                [`contracts/${contractInfo.name}.sol`]: contractInfo.name
               },
               evmVersion: "shanghai",
               libraries: {},
@@ -113,9 +110,9 @@ async function main() {
               remappings: []
             },
             sources: {
-              [`contracts/contracts.sol`]: {
+              [`contracts/${contractInfo.name}.sol`]: {
                 keccak256: "0x0000000000000000000000000000000000000000000000000000000000000000",
-                urls: [`contracts/contracts.sol`]
+                urls: [`contracts/${contractInfo.name}.sol`]
               }
             },
             version: 1
@@ -134,7 +131,7 @@ async function main() {
         };
 
         // Add source info
-        const sourcePath = `contracts/contracts.sol`;
+        const sourcePath = `contracts/${contractInfo.name}.sol`;
         if (!outputJson.sources[sourcePath]) {
           outputJson.sources[sourcePath] = {
             id: Object.keys(outputJson.sources).length,
