@@ -4,22 +4,45 @@ pragma solidity ^0.8.21;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 contract MockGameNFT is ERC721, Ownable {
-    uint256 private _nextTokenId = 1;
-    
-    constructor(string memory name, string memory symbol) ERC721(name, symbol) Ownable(msg.sender) {}
-    
+    using Strings for uint256;
+
+    // CoinGecko asset platform ID cho Ethereum
+    string private constant ASSET_PLATFORM = "ethereum";
+    // Base URL của CoinGecko NFT API
+    string private constant BASE_URI = "https://api.coingecko.com/api/v3/nfts/";
+
+    constructor(string memory name, string memory symbol)
+        ERC721(name, symbol)
+        Ownable(msg.sender)
+    {}
+
     function mint(address to, uint256 tokenId) external onlyOwner {
         _mint(to, tokenId);
     }
-    
+
     function exists(uint256 tokenId) external view returns (bool) {
-        return _ownerOf(tokenId) != address(0);
+        return _exists(tokenId);
     }
-    
-    function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
-        require(_ownerOf(tokenId) != address(0), "Token does not exist");
-        return string(abi.encodePacked("https://api.testgame.com/nft/", Strings.toString(tokenId)));
+
+    /// @notice Trả về URI theo chuẩn CoinGecko NFT API
+    /// @dev Endpoint: GET /nfts/{asset_platform}/contract/{contract_address}?token_ids[]=tokenId
+    function tokenURI(uint256 tokenId) public view override returns (string memory) {
+        require(_exists(tokenId), "Token does not exist");
+
+        // Định dạng URL:
+        // https://api.coingecko.com/api/v3/nfts/ethereum/contract/0x1234...abcd?token_ids%5B%5D=1
+        return string(
+            abi.encodePacked(
+                BASE_URI,
+                ASSET_PLATFORM,
+                "/contract/",
+                Strings.toHexString(uint160(address(this)), 20),
+                "?token_ids%5B%5D=",
+                tokenId.toString()
+            )
+        );
     }
 }
