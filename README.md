@@ -12,9 +12,9 @@ Mosaical là một nền tảng phi tập trung cho phép phân mảnh (fraction
 - [x] Contract flattening for verification
 - [x] Basic testing framework
 - [x] Environment configuration
+- [x] Contract verification on Saga Explorer
 
 ### 🔧 In Progress
-- [ ] Contract verification on Saga Explorer
 - [ ] Frontend development
 - [ ] API integration
 - [ ] Advanced testing scenarios
