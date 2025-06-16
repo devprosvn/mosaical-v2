@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.21;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
@@ -145,11 +144,12 @@ contract LoanManagerV3 is Ownable, ReentrancyGuard {
 
         loanHealthFactors[msg.sender][collection][tokenId] = 15000; // 1.5x health factor
 
-        // Mint DPO tokens
+        // Mint DPO tokens equivalent to borrowed amount
         dpoToken.mintOnLoan(collection, tokenId, msg.sender, amount);
 
-        // Transfer ETH to borrower
-        payable(msg.sender).transfer(amount);
+        // Transfer native DPSV to borrower
+        (bool success, ) = payable(msg.sender).call{value: amount}("");
+        require(success, "DPSV transfer failed");
 
         emit LoanCreated(msg.sender, collection, tokenId, amount);
     }

@@ -27,7 +27,7 @@ async function main() {
     { name: "MosaicalGovernance", args: ["govToken"] }, // Will be replaced with actual address
     { name: "DPOTokenV3", args: [] },
     { name: "LoanManagerV3", args: ["vault", "dpoToken"] }, // Will be replaced with actual addresses
-    { name: "MosaicalSagaBridge", args: ["0xcca6F4EA7e82941535485C2363575404C3061CD2"] }
+    { name: "MosaicalSagaBridge", args: ["0x0000000000000000000000000000000000000000"] }
   ];
 
   const deployedContracts = {};

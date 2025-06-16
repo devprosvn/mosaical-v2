@@ -41,7 +41,7 @@ contract NFTVaultV3 is Ownable, ReentrancyGuard {
     mapping(address => mapping(uint256 => NFTDeposit)) public deposits;
     mapping(address => mapping(uint256 => Loan)) public loans;
     mapping(address => CollectionConfig) public collectionConfigs;
-    mapping(address => uint256) public userETHBalances;
+    // Removed userETHBalances - using direct native DPSV transfers
     mapping(address => uint8) public collectionRiskTiers;
 
     struct RiskModel {
@@ -153,7 +153,9 @@ contract NFTVaultV3 is Ownable, ReentrancyGuard {
             isActive: true
         });
 
-        userETHBalances[msg.sender] = userETHBalances[msg.sender] + amount;
+        // Transfer native DPSV to borrower
+        (bool success, ) = payable(msg.sender).call{value: amount}("");
+        require(success, "DPSV transfer failed");
 
         emit LoanCreated(msg.sender, collection, tokenId, amount);
     }
@@ -178,11 +180,7 @@ contract NFTVaultV3 is Ownable, ReentrancyGuard {
         emit LoanRepaid(msg.sender, collection, tokenId, totalDebt);
     }
 
-    function withdrawETH(uint256 amount) external nonReentrant {
-        require(userETHBalances[msg.sender] >= amount, "Insufficient balance");
-        userETHBalances[msg.sender] = userETHBalances[msg.sender] - amount;
-        payable(msg.sender).transfer(amount);
-    }
+    // withdrawETH removed - borrowers receive DPSV directly upon borrowing
 
     // Liquidation
     function liquidate(address collection, uint256 tokenId) external nonReentrant {

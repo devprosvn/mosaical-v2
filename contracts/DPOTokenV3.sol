@@ -62,7 +62,8 @@ contract DPOTokenV3 is ERC20, Ownable {
     }
 
     // Additional functions for DPO token functionality
-    function distributeInterest(address collection, uint256 tokenId, address holder, uint256 amount) external onlyOwner {
+    function distributeInterest(address collection, uint256 tokenId, address holder, uint256 amount) external payable onlyOwner {
+        require(msg.value >= amount, "Insufficient DPSV sent");
         claimableInterest[collection][tokenId][holder] += amount;
         emit InterestDistributed(collection, tokenId, holder, amount);
     }
@@ -75,7 +76,12 @@ contract DPOTokenV3 is ERC20, Ownable {
         uint256 pending = claimableInterest[collection][tokenId][msg.sender];
         if (pending > 0) {
             claimableInterest[collection][tokenId][msg.sender] = 0;
-            _mint(msg.sender, pending);
+            
+            // Send native DPSV as interest payment
+            require(address(this).balance >= pending, "Insufficient contract balance");
+            (bool success, ) = payable(msg.sender).call{value: pending}("");
+            require(success, "DPSV transfer failed");
+            
             emit InterestClaimed(msg.sender, collection, tokenId, pending);
         }
     }

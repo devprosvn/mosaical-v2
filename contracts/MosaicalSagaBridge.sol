@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 contract MosaicalSagaBridge is Ownable, ReentrancyGuard {
     
     address public layerZeroEndpoint;
+    bool public isPaused;
     
     mapping(uint256 => bool) public supportedChainlets;
     mapping(address => mapping(uint256 => address)) public remoteMappings;
@@ -30,6 +31,13 @@ contract MosaicalSagaBridge is Ownable, ReentrancyGuard {
     
     event ChainletAdded(uint256 indexed chainletId);
     event CollectionMapped(address indexed collection, uint256 indexed chainletId, address remoteCollection);
+    event BridgePaused();
+    event BridgeUnpaused();
+    
+    modifier whenNotPaused() {
+        require(!isPaused, "Bridge is paused");
+        _;
+    }
     
     constructor(address _layerZeroEndpoint) Ownable(msg.sender) {
         layerZeroEndpoint = _layerZeroEndpoint;
@@ -54,7 +62,7 @@ contract MosaicalSagaBridge is Ownable, ReentrancyGuard {
         address collection,
         uint256 tokenId,
         uint256 chainletId
-    ) external payable nonReentrant {
+    ) external payable nonReentrant whenNotPaused {
         require(supportedChainlets[chainletId], "Chainlet not supported");
         require(remoteMappings[collection][chainletId] != address(0), "Collection not mapped");
         require(IERC721(collection).ownerOf(tokenId) == msg.sender, "Not NFT owner");
@@ -82,6 +90,16 @@ contract MosaicalSagaBridge is Ownable, ReentrancyGuard {
     
     function updateLayerZeroEndpoint(address _endpoint) external onlyOwner {
         layerZeroEndpoint = _endpoint;
+    }
+    
+    function pauseBridge() external onlyOwner {
+        isPaused = true;
+        emit BridgePaused();
+    }
+    
+    function unpauseBridge() external onlyOwner {
+        isPaused = false;
+        emit BridgeUnpaused();
     }
     
     function withdrawFees() external onlyOwner {

@@ -88,12 +88,12 @@ async function deploy() {
         await loanManager.waitForDeployment();
         console.log('LoanManagerV3 deployed to:', await loanManager.getAddress());
 
-           // Deploy Bridge with LayerZero endpoint
+           // Deploy MosaicalSagaBridge (paused by default)
         const MosaicalSagaBridge = JSON.parse(fs.readFileSync(
             path.join(contractsPath, 'MosaicalSagaBridge.sol/MosaicalSagaBridge.json')
         ));
         const bridgeFactory = new ethers.ContractFactory(MosaicalSagaBridge.abi, MosaicalSagaBridge.bytecode, wallet);
-        const bridge = await bridgeFactory.deploy("0x1234567890123456789012345678901234567890"); // Mock LayerZero endpoint
+        const bridge = await bridgeFactory.deploy("0x0000000000000000000000000000000000000000"); // Null endpoint - bridge will be paused
         await bridge.waitForDeployment();
         console.log(`MosaicalSagaBridge deployed to: ${await bridge.getAddress()}`);
 
