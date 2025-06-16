@@ -63,6 +63,12 @@ describe("Mosaical MVP Test Suite", function () {
     const loanManagerAddress = await loanManager.getAddress();
     await dpoToken.authorizeMinter(loanManagerAddress);
 
+    // Fund DPO token contract for interest distribution
+    await admin.sendTransaction({
+      to: await dpoToken.getAddress(),
+      value: ethers.parseEther("10")
+    });
+
     // Setup test data
     await nftVault.addSupportedCollection(collectionAddress);
     await nftVault.setGameCategory(collectionAddress, 1); // RPG
@@ -357,7 +363,8 @@ describe("Mosaical MVP Test Suite", function () {
         collectionAddress,
         1,
         borrower.address,
-        interestAmount
+        interestAmount,
+        { value: interestAmount }
       );
 
       // Check pending interest
@@ -621,7 +628,8 @@ describe("Mosaical MVP Test Suite", function () {
         collectionAddress,
         1,
         borrower.address,
-        interestAmount
+        interestAmount,
+        { value: interestAmount }
       );
 
       // 8. Claim interest
