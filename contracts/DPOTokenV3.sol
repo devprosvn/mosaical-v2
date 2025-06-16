@@ -27,6 +27,11 @@ contract DPOTokenV3 is ERC20, Ownable {
         _mint(msg.sender, 1000000 * 10**18); // Initial supply
     }
 
+    // Receive function to accept ETH for interest distribution
+    receive() external payable {
+        // Allow contract to receive ETH for interest payments
+    }
+
     function mint(address to, uint256 amount) external {
         require(authorizedMinters[msg.sender] || msg.sender == owner(), "Not authorized to mint");
         _mint(to, amount);
