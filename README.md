@@ -24,6 +24,368 @@ The platform consists of 8 core smart contracts deployed on Saga Chainlet:
 7. **GovernanceToken** - Voting tokens for protocol governance
 8. **MosaicalSagaBridge** - Cross-chain bridge for asset transfers
 
+```mermaid
+graph TB
+    subgraph "External Layer"
+        User[Users]
+        GameFi[GameFi NFTs]
+        CrossChain[Other Chains]
+    end
+    
+    subgraph "Mosaical Platform - Saga Chainlet"
+        subgraph "Core Contracts"
+            NFTVault[NFTVaultV3<br/>NFT Collateral Management]
+            DPOToken[DPOTokenV3<br/>Fractionalized Tokens]
+            LoanManager[LoanManagerV3<br/>Lending Protocol]
+            Oracle[GameFiOracleV3<br/>Price Oracle]
+        end
+        
+        subgraph "Governance Layer"
+            GovToken[GovernanceToken<br/>Voting Power]
+            Governance[MosaicalGovernance<br/>DAO Management]
+        end
+        
+        subgraph "Infrastructure"
+            Bridge[MosaicalSagaBridge<br/>Cross-chain Bridge]
+            MockNFT[MockGameNFT<br/>Test NFT Contract]
+        end
+    end
+    
+    User --> NFTVault
+    User --> DPOToken
+    User --> LoanManager
+    User --> Governance
+    GameFi --> NFTVault
+    CrossChain --> Bridge
+    
+    NFTVault --> Oracle
+    NFTVault --> DPOToken
+    LoanManager --> NFTVault
+    LoanManager --> DPOToken
+    Governance --> GovToken
+    Bridge --> NFTVault
+    
+    style NFTVault fill:#ff9999
+    style DPOToken fill:#99ccff
+    style LoanManager fill:#99ff99
+    style Oracle fill:#ffcc99
+    style Governance fill:#cc99ff
+```
+
+## 🔄 Functional Diagram
+
+```mermaid
+flowchart TD
+    subgraph "NFT Deposit Flow"
+        A[User Deposits NFT] --> B[Risk Assessment]
+        B --> C[Calculate Collateral Value]
+        C --> D[Mint DPO Tokens]
+        D --> E[Update Vault Records]
+    end
+    
+    subgraph "Lending Flow"
+        F[Request Loan] --> G[Check Collateral]
+        G --> H[Calculate LTV Ratio]
+        H --> I[Approve/Reject Loan]
+        I --> J[Disburse Funds]
+    end
+    
+    subgraph "Interest & Liquidation"
+        K[Accrue Interest] --> L[Monitor Health Factor]
+        L --> M{Health Factor < 1?}
+        M -->|Yes| N[Trigger Liquidation]
+        M -->|No| O[Continue Monitoring]
+        N --> P[Sell Collateral]
+        P --> Q[Repay Debt]
+    end
+    
+    subgraph "Governance Flow"
+        R[Create Proposal] --> S[Voting Period]
+        S --> T[Vote Counting]
+        T --> U{Quorum Met?}
+        U -->|Yes| V[Execute Proposal]
+        U -->|No| W[Proposal Fails]
+    end
+    
+    E --> F
+    J --> K
+    D --> R
+    
+    style A fill:#e1f5fe
+    style F fill:#f3e5f5
+    style K fill:#fff3e0
+    style R fill:#e8f5e8
+```
+
+## 🎯 Use Case Diagram
+
+### System Level Use Cases
+
+```mermaid
+graph LR
+    subgraph "Actors"
+        NFTHolder[NFT Holder]
+        Borrower[Borrower]
+        Lender[Lender/DPO Holder]
+        Governance[DAO Member]
+        Oracle[Oracle Provider]
+        Admin[System Admin]
+    end
+    
+    subgraph "System Use Cases"
+        UC1[Deposit NFT as Collateral]
+        UC2[Withdraw NFT]
+        UC3[Borrow Against NFT]
+        UC4[Repay Loan]
+        UC5[Liquidate Position]
+        UC6[Trade DPO Tokens]
+        UC7[Earn Interest]
+        UC8[Create Governance Proposal]
+        UC9[Vote on Proposal]
+        UC10[Update Price Feeds]
+        UC11[Manage Risk Parameters]
+        UC12[Bridge Assets]
+    end
+    
+    NFTHolder --> UC1
+    NFTHolder --> UC2
+    Borrower --> UC3
+    Borrower --> UC4
+    Lender --> UC5
+    Lender --> UC6
+    Lender --> UC7
+    Governance --> UC8
+    Governance --> UC9
+    Oracle --> UC10
+    Admin --> UC11
+    NFTHolder --> UC12
+    
+    style NFTHolder fill:#ffebee
+    style Borrower fill:#e3f2fd
+    style Lender fill:#e8f5e8
+    style Governance fill:#f3e5f5
+```
+
+### Function Use Cases
+
+```mermaid
+graph TB
+    subgraph "NFT Vault Functions"
+        VF1[depositNFT]
+        VF2[withdrawNFT]
+        VF3[calculateCollateralValue]
+        VF4[updateRiskTier]
+        VF5[liquidatePosition]
+    end
+    
+    subgraph "DPO Token Functions"
+        DF1[mint]
+        DF2[burn]
+        DF3[distributeInterest]
+        DF4[claimInterest]
+        DF5[placeBuyOrder]
+        DF6[placeSellOrder]
+    end
+    
+    subgraph "Loan Manager Functions"
+        LF1[createLoan]
+        LF2[repayLoan]
+        LF3[calculateInterest]
+        LF4[liquidate]
+        LF5[updateHealthFactor]
+    end
+    
+    subgraph "Governance Functions"
+        GF1[createProposal]
+        GF2[vote]
+        GF3[executeProposal]
+        GF4[delegate]
+        GF5[updateQuorum]
+    end
+    
+    subgraph "Oracle Functions"
+        OF1[updatePrice]
+        OF2[updateUtilityScore]
+        OF3[getCollectionMetrics]
+        OF4[validatePrice]
+    end
+    
+    VF1 --> DF1
+    VF2 --> DF2
+    VF3 --> OF1
+    LF1 --> VF3
+    LF4 --> VF5
+    GF3 --> LF5
+    
+    style VF1 fill:#ffcdd2
+    style DF1 fill:#c8e6c9
+    style LF1 fill:#bbdefb
+    style GF1 fill:#d1c4e9
+    style OF1 fill:#ffe0b2
+```
+
+## 🏗️ Class Diagram
+
+```mermaid
+classDiagram
+    class NFTVaultV3 {
+        +mapping nftDeposits
+        +mapping collateralValues
+        +mapping riskTiers
+        +depositNFT(address, uint256)
+        +withdrawNFT(address, uint256)
+        +calculateCollateralValue(address, uint256)
+        +liquidatePosition(address, uint256)
+        +updateRiskTier(address, uint8)
+    }
+    
+    class DPOTokenV3 {
+        +mapping tokenHoldings
+        +mapping claimableInterest
+        +mint(address, uint256)
+        +burn(uint256)
+        +distributeInterest(address, uint256, address, uint256)
+        +claimInterest(address, uint256)
+        +placeBuyOrder(address, uint256, uint256, uint256)
+        +placeSellOrder(address, uint256, uint256, uint256)
+    }
+    
+    class LoanManagerV3 {
+        +mapping loans
+        +mapping healthFactors
+        +createLoan(address, uint256, uint256)
+        +repayLoan(uint256)
+        +calculateInterest(uint256)
+        +liquidate(uint256)
+        +updateHealthFactor(uint256)
+    }
+    
+    class GameFiOracleV3 {
+        +mapping prices
+        +mapping utilityScores
+        +mapping collectionMetrics
+        +updatePrice(address, uint256)
+        +updateUtilityScore(address, uint256)
+        +getCollectionMetrics(address)
+        +validatePrice(address, uint256)
+    }
+    
+    class MosaicalGovernance {
+        +mapping proposals
+        +mapping votes
+        +uint256 quorum
+        +createProposal(string, bytes)
+        +vote(uint256, bool)
+        +executeProposal(uint256)
+        +delegate(address)
+    }
+    
+    class GovernanceToken {
+        +mapping delegates
+        +mint(address, uint256)
+        +burn(uint256)
+        +delegate(address)
+        +getCurrentVotes(address)
+    }
+    
+    class MosaicalSagaBridge {
+        +mapping bridgedAssets
+        +bridgeToChain(address, uint256, uint256)
+        +receiveFromChain(bytes)
+        +validateBridge(bytes32)
+    }
+    
+    NFTVaultV3 --> DPOTokenV3 : mints
+    NFTVaultV3 --> GameFiOracleV3 : queries
+    LoanManagerV3 --> NFTVaultV3 : manages
+    LoanManagerV3 --> DPOTokenV3 : borrows
+    MosaicalGovernance --> GovernanceToken : uses
+    MosaicalSagaBridge --> NFTVaultV3 : deposits
+```
+
+## 🗄️ Entity Relationship Diagram
+
+```mermaid
+erDiagram
+    USER {
+        address wallet_address PK
+        uint256 governance_tokens
+        uint256 dpo_balance
+        bool is_authorized_minter
+    }
+    
+    NFT {
+        address collection_address PK
+        uint256 token_id PK
+        address owner
+        uint8 risk_tier
+        uint256 collateral_value
+        uint256 utility_score
+        bool is_deposited
+    }
+    
+    LOAN {
+        uint256 loan_id PK
+        address borrower FK
+        address nft_collection FK
+        uint256 nft_token_id FK
+        uint256 principal_amount
+        uint256 interest_rate
+        uint256 start_time
+        uint256 last_update
+        uint256 health_factor
+        bool is_active
+    }
+    
+    DPO_TOKEN {
+        address collection FK
+        uint256 token_id FK
+        address holder FK
+        uint256 amount
+        uint256 claimable_interest
+    }
+    
+    GOVERNANCE_PROPOSAL {
+        uint256 proposal_id PK
+        address proposer FK
+        string description
+        bytes execution_data
+        uint256 start_block
+        uint256 end_block
+        uint256 for_votes
+        uint256 against_votes
+        bool executed
+    }
+    
+    PRICE_FEED {
+        address collection FK
+        uint256 floor_price
+        uint256 last_update
+        uint256 volume_24h
+        uint256 holder_count
+        bool is_active
+    }
+    
+    BRIDGE_TRANSACTION {
+        bytes32 transaction_hash PK
+        address sender FK
+        address nft_collection FK
+        uint256 nft_token_id FK
+        uint256 source_chain
+        uint256 destination_chain
+        bool is_completed
+    }
+    
+    USER ||--o{ LOAN : creates
+    USER ||--o{ DPO_TOKEN : holds
+    USER ||--o{ GOVERNANCE_PROPOSAL : proposes
+    NFT ||--|| LOAN : secures
+    NFT ||--o{ DPO_TOKEN : fractionalized_into
+    NFT ||--|| PRICE_FEED : priced_by
+    NFT ||--o{ BRIDGE_TRANSACTION : bridges
+    LOAN ||--o{ DPO_TOKEN : generates
+```
+
 ## 🌐 Network Information
 
 ### Saga Chainlet (devpros)
