@@ -1,488 +1,56 @@
-
 # Mosaical MVP - Decentralized NFT Fractionalization Platform
 
-Mosaical là một nền tảng phi tập trung cho phép phân mảnh (fractionalize) NFT và tạo ra các token DPO (Diversified Portfolio Option) để giao dịch và đầu tư vào danh mục NFT đa dạng.
+Mosaical is a decentralized platform that enables NFT fractionalization and creates DPO (Diversified Portfolio Option) tokens for trading and investing in diversified NFT portfolios.
 
-## 📋 Todo List
+## 🚀 Features
 
-### ✅ Completed
-- [x] Smart contract development (8 contracts)
-- [x] Contract compilation system
-- [x] Deployment scripts for Saga chainlet
-- [x] Contract flattening for verification
-- [x] Basic testing framework
-- [x] Environment configuration
-- [x] Contract verification on Saga Explorer
+- **NFT Fractionalization**: Deposit NFTs into vaults to receive DPO tokens
+- **Lending Protocol**: Borrow against NFT collateral with dynamic interest rates
+- **Governance System**: Community-driven protocol governance with voting mechanisms
+- **Cross-chain Bridge**: Transfer assets between different blockchain networks
+- **Oracle Integration**: Real-time price feeds and utility scoring for GameFi NFTs
+- **Risk Management**: Multi-tier risk models with liquidation protection
 
-### 🔧 In Progress
-- [ ] Frontend development
-- [ ] API integration
-- [ ] Advanced testing scenarios
+## 📊 System Architecture
 
-### 📅 Planned
-- [ ] Oracle price feed integration
-- [ ] Cross-chain bridge functionality
-- [ ] Governance voting mechanism
-- [ ] Staking rewards system
-- [ ] Mobile application
-- [ ] Audit and security review
+The platform consists of 8 core smart contracts deployed on Saga Chainlet:
 
-## 🏗️ System Architecture
+1. **MockGameNFT** - Example NFT contract for testing
+2. **NFTVaultV3** - Core vault for NFT deposits and collateral management
+3. **DPOTokenV3** - Fractionalized tokens with interest distribution
+4. **LoanManagerV3** - Lending protocol with dynamic interest rates
+5. **GameFiOracleV3** - Price oracle with utility scoring for GameFi assets
+6. **MosaicalGovernance** - DAO governance with proposal and voting system
+7. **GovernanceToken** - Voting tokens for protocol governance
+8. **MosaicalSagaBridge** - Cross-chain bridge for asset transfers
 
-```mermaid
-graph TB
-    User[👤 User] --> Frontend[🖥️ Frontend DApp]
-    Frontend --> Web3[🔗 Web3 Provider]
-    Web3 --> Saga[🌐 Saga Chainlet]
-    
-    subgraph "Smart Contracts"
-        MockNFT[🎮 MockGameNFT]
-        Vault[🏦 NFTVaultV3]
-        DPO[💰 DPOTokenV3]
-        Loan[📋 LoanManagerV3]
-        Oracle[📊 GameFiOracleV3]
-        Gov[🗳️ MosaicalGovernance]
-        GovToken[🎫 GovernanceToken]
-        Bridge[🌉 MosaicalSagaBridge]
-    end
-    
-    Saga --> MockNFT
-    Saga --> Vault
-    Saga --> DPO
-    Saga --> Loan
-    Saga --> Oracle
-    Saga --> Gov
-    Saga --> GovToken
-    Saga --> Bridge
-    
-    Oracle --> ExternalAPI[📡 External Price APIs]
-    Bridge --> OtherChains[⛓️ Other Blockchains]
+## 🌐 Network Information
+
+### Saga Chainlet (devpros)
+- **Network Name**: devpros
+- **Chain ID**: 2749656616387000
+- **RPC URL**: `https://devpros-2749656616387000-1.jsonrpc.sagarpc.io`
+- **WebSocket**: `https://devpros-2749656616387000-1.ws.sagarpc.io`
+- **Block Explorer**: `https://devpros-2749656616387000-1.sagaexplorer.io`
+
+## 📋 Contract Addresses (Latest Deployment)
+
+```json
+{
+  "MockGameNFT": "0xf92cd1A59e682a9Fb66f0145e5a8834cF79DA3Ea",
+  "GovernanceToken": "0x035F76ef9Ca49fabCA7d6828018aAF491Ae52508",
+  "GameFiOracleV3": "0x85dBc00b8F20A827820263aBC1Db8e8E48366FA2",
+  "NFTVaultV3": "0x9B48478e076458E33Cef1aE2F07CF4E90723b7aa",
+  "MosaicalGovernance": "0xE88278b409E72Da42C3E7b761a5fca9483303A53",
+  "DPOTokenV3": "0x6Dc8eA402977576153d0Fabbc7C496765540bc7d",
+  "LoanManagerV3": "0x9c1378C1993367cD5641bf2813AE14B95B581C73",
+  "MosaicalSagaBridge": "0x050523005E61BD90780b545d65789d68DA86727f"
+}
 ```
 
-## 🎯 Core Features
+All contracts have been successfully verified on the Saga Explorer and are ready for interaction.
 
-### 1. NFT Fractionalization
-- Deposit NFTs vào vault để nhận DPO tokens
-- Phân mảnh ownership của high-value NFTs
-- Liquidity mining và yield farming
-
-### 2. Decentralized Finance (DeFi)
-- Lending/borrowing với NFT collateral
-- Interest distribution system
-- Order book trading cho DPO tokens
-
-### 3. Governance System
-- Community voting trên protocol changes
-- Proposal creation và execution
-- Token-based voting power
-
-### 4. Cross-chain Bridge
-- Transfer assets giữa các chains
-- Multi-chain NFT support
-- Unified liquidity pools
-
-## 📊 Functional Diagram
-
-```mermaid
-flowchart TD
-    Start([🚀 User Start]) --> Choice{Select Action}
-    
-    Choice -->|Deposit NFT| DepositFlow[📥 Deposit NFT]
-    Choice -->|Trade DPO| TradeFlow[💱 Trade DPO Tokens]
-    Choice -->|Borrow| BorrowFlow[💰 Borrow Against NFT]
-    Choice -->|Governance| GovFlow[🗳️ Governance Actions]
-    
-    DepositFlow --> CheckNFT{Valid NFT?}
-    CheckNFT -->|Yes| MintDPO[🪙 Mint DPO Tokens]
-    CheckNFT -->|No| Error1[❌ Error: Invalid NFT]
-    MintDPO --> Success1[✅ Success: DPO Received]
-    
-    TradeFlow --> CheckBalance{Sufficient Balance?}
-    CheckBalance -->|Yes| ExecuteTrade[⚡ Execute Trade]
-    CheckBalance -->|No| Error2[❌ Error: Insufficient Funds]
-    ExecuteTrade --> Success2[✅ Success: Trade Complete]
-    
-    BorrowFlow --> CheckCollateral{Valid Collateral?}
-    CheckCollateral -->|Yes| CreateLoan[📋 Create Loan]
-    CheckCollateral -->|No| Error3[❌ Error: Invalid Collateral]
-    CreateLoan --> Success3[✅ Success: Loan Created]
-    
-    GovFlow --> CheckVotingPower{Has Voting Power?}
-    CheckVotingPower -->|Yes| Vote[🗳️ Cast Vote]
-    CheckVotingPower -->|No| Error4[❌ Error: No Voting Power]
-    Vote --> Success4[✅ Success: Vote Recorded]
-    
-    Success1 --> End([🏁 End])
-    Success2 --> End
-    Success3 --> End
-    Success4 --> End
-    Error1 --> End
-    Error2 --> End
-    Error3 --> End
-    Error4 --> End
-```
-
-## 🎭 Use Case Diagram
-
-### System Level Use Cases
-
-```mermaid
-graph LR
-    User[👤 User]
-    Investor[👨‍💼 Investor]
-    Admin[👑 Admin]
-    Oracle[🤖 Oracle]
-    
-    subgraph "Mosaical System"
-        UC1[Deposit NFT]
-        UC2[Withdraw NFT]
-        UC3[Trade DPO Tokens]
-        UC4[Create Loan]
-        UC5[Repay Loan]
-        UC6[Vote on Proposals]
-        UC7[Create Proposals]
-        UC8[Update Prices]
-        UC9[Manage System]
-        UC10[Bridge Assets]
-    end
-    
-    User --> UC1
-    User --> UC2
-    User --> UC3
-    User --> UC4
-    User --> UC5
-    User --> UC6
-    
-    Investor --> UC3
-    Investor --> UC6
-    Investor --> UC7
-    
-    Admin --> UC9
-    Admin --> UC7
-    
-    Oracle --> UC8
-    
-    User --> UC10
-```
-
-### NFT Vault Module Use Cases
-
-```mermaid
-graph LR
-    NFTOwner[🎨 NFT Owner]
-    DPOHolder[💰 DPO Holder]
-    
-    subgraph "NFT Vault Module"
-        UC1[Deposit NFT]
-        UC2[Withdraw NFT]
-        UC3[Check Vault Status]
-        UC4[Calculate DPO Value]
-        UC5[Emergency Withdraw]
-    end
-    
-    NFTOwner --> UC1
-    NFTOwner --> UC2
-    NFTOwner --> UC3
-    NFTOwner --> UC5
-    
-    DPOHolder --> UC2
-    DPOHolder --> UC3
-    DPOHolder --> UC4
-```
-
-### Loan Manager Module Use Cases
-
-```mermaid
-graph LR
-    Borrower[💳 Borrower]
-    Lender[🏦 Lender]
-    
-    subgraph "Loan Manager Module"
-        UC1[Create Loan Request]
-        UC2[Approve Loan]
-        UC3[Repay Loan]
-        UC4[Liquidate Collateral]
-        UC5[Check Loan Status]
-        UC6[Calculate Interest]
-    end
-    
-    Borrower --> UC1
-    Borrower --> UC3
-    Borrower --> UC5
-    
-    Lender --> UC2
-    Lender --> UC4
-    Lender --> UC5
-    Lender --> UC6
-```
-
-### Governance Module Use Cases
-
-```mermaid
-graph LR
-    TokenHolder[🎫 Token Holder]
-    Proposer[📝 Proposer]
-    
-    subgraph "Governance Module"
-        UC1[Create Proposal]
-        UC2[Vote on Proposal]
-        UC3[Execute Proposal]
-        UC4[Delegate Voting Power]
-        UC5[Check Voting History]
-    end
-    
-    TokenHolder --> UC2
-    TokenHolder --> UC4
-    TokenHolder --> UC5
-    
-    Proposer --> UC1
-    Proposer --> UC3
-```
-
-## 🏛️ Class Diagram
-
-```mermaid
-classDiagram
-    class MockGameNFT {
-        +string name
-        +string symbol
-        +constructor(name, symbol)
-        +mint(to, tokenId)
-        +exists(tokenId) bool
-        +tokenURI(tokenId) string
-    }
-    
-    class NFTVaultV3 {
-        +mapping vaultedNFTs
-        +mapping dpoBalances
-        +address oracle
-        +constructor(oracle)
-        +depositNFT(collection, tokenId)
-        +withdrawNFT(collection, tokenId)
-        +calculateDPOValue(collection, tokenId) uint256
-        +emergencyWithdraw(collection, tokenId)
-    }
-    
-    class DPOTokenV3 {
-        +mapping authorizedMinters
-        +mapping tokenHoldings
-        +mapping claimableInterest
-        +constructor()
-        +mint(to, amount)
-        +mintOnLoan(collection, tokenId, borrower, amount)
-        +distributeInterest(collection, tokenId, holder, amount)
-        +claimInterest(collection, tokenId)
-        +placeBuyOrder(collection, tokenId, amount, price)
-        +placeSellOrder(collection, tokenId, amount, price)
-    }
-    
-    class LoanManagerV3 {
-        +address nftVault
-        +address dpoToken
-        +mapping loans
-        +constructor(vault, dpoToken)
-        +createLoan(collection, tokenId, amount, duration)
-        +repayLoan(loanId)
-        +liquidateLoan(loanId)
-        +calculateInterest(loanId) uint256
-    }
-    
-    class GameFiOracleV3 {
-        +mapping priceFeeds
-        +mapping authorizedUpdaters
-        +constructor()
-        +updatePrice(collection, tokenId, price)
-        +getPrice(collection, tokenId) uint256
-        +addPriceFeed(collection, feedAddress)
-    }
-    
-    class MosaicalGovernance {
-        +address governanceToken
-        +mapping proposals
-        +constructor(govToken)
-        +createProposal(description, targets, values, calldatas)
-        +vote(proposalId, support)
-        +executeProposal(proposalId)
-        +getVotingPower(account) uint256
-    }
-    
-    class GovernanceToken {
-        +constructor(name, symbol)
-        +mint(to, amount)
-        +delegate(delegatee)
-        +getVotes(account) uint256
-    }
-    
-    class MosaicalSagaBridge {
-        +address trustedRemote
-        +mapping bridgedAssets
-        +constructor(trustedRemote)
-        +bridgeToRemote(tokenId, amount, recipient)
-        +receiveFromRemote(tokenId, amount, recipient)
-        +updateTrustedRemote(newRemote)
-    }
-    
-    NFTVaultV3 --> GameFiOracleV3 : uses
-    NFTVaultV3 --> DPOTokenV3 : mints
-    LoanManagerV3 --> NFTVaultV3 : manages
-    LoanManagerV3 --> DPOTokenV3 : mints
-    MosaicalGovernance --> GovernanceToken : uses
-    MockGameNFT --> NFTVaultV3 : deposited to
-```
-
-## 📊 Entity Relationship Diagram
-
-```mermaid
-erDiagram
-    USER {
-        address wallet_address PK
-        uint256 dpo_balance
-        uint256 governance_tokens
-        uint256 voting_power
-        bool is_authorized_minter
-    }
-    
-    NFT {
-        address collection_address PK
-        uint256 token_id PK
-        address owner
-        bool is_vaulted
-        uint256 estimated_value
-        string metadata_uri
-    }
-    
-    VAULT {
-        address vault_address PK
-        uint256 total_dpo_minted
-        uint256 total_nfts_deposited
-        address oracle_address
-        bool emergency_paused
-    }
-    
-    DPO_TOKEN {
-        address token_address PK
-        uint256 total_supply
-        uint256 decimals
-        string name
-        string symbol
-    }
-    
-    LOAN {
-        uint256 loan_id PK
-        address borrower
-        address collection_address
-        uint256 token_id
-        uint256 principal_amount
-        uint256 interest_rate
-        uint256 duration
-        uint256 start_timestamp
-        bool is_repaid
-        bool is_liquidated
-    }
-    
-    PROPOSAL {
-        uint256 proposal_id PK
-        address proposer
-        string description
-        uint256 vote_start
-        uint256 vote_end
-        uint256 votes_for
-        uint256 votes_against
-        bool executed
-        bool cancelled
-    }
-    
-    VOTE {
-        uint256 vote_id PK
-        uint256 proposal_id FK
-        address voter
-        bool support
-        uint256 voting_power
-        uint256 timestamp
-    }
-    
-    PRICE_FEED {
-        address collection_address PK
-        uint256 token_id PK
-        uint256 current_price
-        uint256 last_updated
-        address feed_source
-        bool is_active
-    }
-    
-    BRIDGE_TRANSACTION {
-        uint256 tx_id PK
-        address from_chain
-        address to_chain
-        address sender
-        address recipient
-        uint256 amount
-        uint256 timestamp
-        bool completed
-    }
-    
-    USER ||--o{ NFT : owns
-    USER ||--o{ LOAN : borrows
-    USER ||--o{ VOTE : casts
-    USER ||--o{ PROPOSAL : creates
-    
-    NFT ||--o| VAULT : deposited_in
-    NFT ||--o| LOAN : collateral_for
-    NFT ||--o| PRICE_FEED : has_price
-    
-    VAULT ||--|| DPO_TOKEN : mints
-    VAULT ||--o{ LOAN : manages
-    
-    PROPOSAL ||--o{ VOTE : receives
-    
-    LOAN }|--|| NFT : secured_by
-    LOAN }|--|| USER : borrowed_by
-    
-    PRICE_FEED }|--|| NFT : prices
-```
-
-## 🚀 Quick Start
-
-### 1. Environment Setup
-```bash
-# Copy environment template
-cp .env.example .env
-
-# Edit .env with your private key and network settings
-```
-
-### 2. Compile Contracts
-```bash
-# Using workflow button or command
-npm run compile
-# or
-node scripts/compile.js
-```
-
-### 3. Deploy Contracts
-```bash
-# Deploy to Saga chainlet
-npx hardhat run scripts/deploy.js --network devpros
-
-# Deploy with JSON output
-npx hardhat run scripts/deploy-with-json.js --network devpros
-```
-
-### 4. Verify Contracts
-```bash
-# Flatten contracts first
-node scripts/flatten.js
-
-# Manual verification on Saga Explorer
-# Use flattened files in /flattened directory
-```
-
-### 5. Run Tests
-```bash
-npx hardhat test
-```
-
-## 📁 Project Structure
+## 🏗️ Project Structure
 
 ```
 ├── contracts/              # Smart contracts
@@ -495,55 +63,163 @@ npx hardhat test
 │   ├── GovernanceToken.sol # Voting tokens
 │   └── MosaicalSagaBridge.sol # Cross-chain bridge
 ├── scripts/                # Deployment & utility scripts
+│   ├── deploy.js           # Main deployment script
+│   ├── deploy-with-json.js # Deployment with JSON output
+│   ├── verify.js           # Contract verification
+│   ├── flatten.js          # Contract flattening
+│   └── compile.js          # Contract compilation
 ├── test/                   # Test files
 ├── deployments/            # Deployment records
 ├── flattened/              # Flattened contracts for verification
 └── .env.example           # Environment template
 ```
 
-## 🌐 Network Configuration
+## 🚀 Quick Start
 
-### Saga Chainlet (devpros)
-- **RPC URL**: `https://devpros-2749656616387000-1.jsonrpc.sagarpc.io`
-- **Chain ID**: `2749656616387000`
-- **Explorer**: `https://devpros-2749656616387000-1.sagaexplorer.io`
-- **WebSocket**: `https://devpros-2749656616387000-1.ws.sagarpc.io`
+### 1. Environment Setup
+```bash
+# Copy environment template
+cp .env.example .env
 
-### Contract Addresses (Latest Deployment)
-```json
-{
-  "MockGameNFT": "0x165ABbf7859997e9Ebed825df101E313Db642dda",
-  "GovernanceToken": "0x54bef235A25daC5B4386A05e25D37688C5379936",
-  "GameFiOracleV3": "0x980F5eA0dc03175056BC041f4708C82B74d6E322",
-  "NFTVaultV3": "0x869d9bF00823018f74854033040943A1ff5EFf60",
-  "MosaicalGovernance": "0xd31E3D5e43E9945B4AF2aDD7f5a54C00E76b0991",
-  "DPOTokenV3": "0x6d66483DC259783f4E4aDe90b1fAB01F8A876D2e",
-  "LoanManagerV3": "0xC9D80AF77a91d7FB7A73189D1D97ABc29399460c",
-  "MosaicalSagaBridge": "0x2FbA9CcF4930FB188a4A5A7a7bFC6aDBda0eb439"
-}
+# Edit .env with your private key and network settings
 ```
 
-## 🔧 Available Scripts
+### 2. Install Dependencies
+```bash
+npm install
+```
 
-| Command | Description |
-|---------|-------------|
-| `npm run compile` | Compile smart contracts |
-| `npm run deploy` | Deploy contracts to network |
-| `npm run test` | Run test suite |
-| `npm run flatten` | Generate flattened contracts |
-| `npm run verify` | Verify contracts on explorer |
+### 3. Compile Contracts
+```bash
+# Using the Compile Contracts workflow
+# or manually:
+node scripts/compile.js
+```
 
-## 🛡️ Security Considerations
+### 4. Deploy Contracts
+```bash
+# Deploy to Saga chainlet
+npx hardhat run scripts/deploy.js --network devpros
 
-- All contracts use OpenZeppelin secure implementations
-- Multi-signature requirements for critical operations
-- Emergency pause mechanisms
-- Oracle price manipulation protection
-- Reentrancy guards on financial functions
+# Deploy with JSON output
+npx hardhat run scripts/deploy-with-json.js --network devpros
+```
 
-## 📄 License
+### 5. Verify Contracts
+```bash
+# Flatten contracts first
+node scripts/flatten.js
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+# Run verification script
+npx hardhat run scripts/verify.js --network devpros
+```
+
+### 6. Run Tests
+```bash
+npx hardhat test
+```
+
+## 🔧 Available Workflows
+
+| Workflow | Description |
+|----------|-------------|
+| **Deploy Contracts** | Deploy all contracts to Saga chainlet |
+| **Compile Contracts** | Compile smart contracts |
+| **Verify Contracts** | Verify contracts on block explorer |
+| **Deploy with JSON** | Deploy with JSON output for integration |
+| **Run Tests** | Execute test suite |
+| **Flatten Contracts** | Generate flattened contracts |
+
+## 💼 Core Functionality
+
+### NFT Vault Operations
+- **Deposit NFT**: Lock NFTs to receive borrowing capacity
+- **Withdraw NFT**: Reclaim NFTs after loan repayment
+- **Risk Assessment**: Multi-tier risk models based on collection type
+
+### Lending Protocol
+- **Borrow**: Use NFTs as collateral to borrow DPSV tokens
+- **Repay**: Repay loans with accrued interest
+- **Liquidation**: Automated liquidation for underwater positions
+- **Dynamic Interest**: Interest rates based on utilization and risk
+
+### DPO Token Features
+- **Fractionalization**: Represent fractional ownership of NFT portfolios
+- **Interest Distribution**: Earn yield from protocol fees
+- **Trading**: Buy/sell orders for secondary market liquidity
+- **Governance Rights**: Participate in protocol decisions
+
+### Governance System
+- **Proposals**: Create proposals for protocol changes
+- **Voting**: Token-weighted voting system
+- **Execution**: Automated execution of passed proposals
+- **Delegation**: Delegate voting power to other addresses
+
+## 🛡️ Security Features
+
+- **Multi-signature** requirements for critical operations
+- **Emergency pause** mechanisms
+- **Oracle price manipulation** protection
+- **Reentrancy guards** on financial functions
+- **Liquidation protection** with health factors
+- **Risk-based LTV** ratios
+
+## 📈 Risk Management
+
+The protocol implements a 5-tier risk model:
+
+| Tier | Max LTV | Liquidation Threshold | Target Collections |
+|------|---------|----------------------|-------------------|
+| 1    | 70%     | 80%                  | Blue-chip NFTs    |
+| 2    | 65%     | 75%                  | Established GameFi |
+| 3    | 60%     | 70%                  | Mid-tier collections |
+| 4    | 55%     | 65%                  | New/experimental |
+| 5    | 50%     | 60%                  | High-risk assets |
+
+## 🎮 GameFi Integration
+
+- **Utility Scoring**: On-chain utility scoring for GameFi NFTs
+- **Collection Metrics**: Volume, holder count, and activity tracking
+- **Dynamic Pricing**: Real-time floor price updates
+- **Activity Monitoring**: Track in-game utility and engagement
+
+## 🌉 Cross-chain Capabilities
+
+- **Asset Bridging**: Transfer NFTs between supported chains
+- **Unified Liquidity**: Cross-chain liquidity pools
+- **Multi-chain Support**: Expandable to other blockchain networks
+- **LayerZero Integration**: Secure cross-chain messaging
+
+## 🧪 Testing
+
+The project includes comprehensive tests covering:
+- Contract deployment and initialization
+- NFT deposit and withdrawal flows
+- Lending and borrowing operations
+- Governance proposal and voting
+- Oracle price updates
+- Bridge functionality
+
+## 📝 Environment Variables
+
+Required environment variables (see `.env.example`):
+
+```bash
+# Network Configuration
+NETWORK=devpros
+RPC_URL=https://devpros-2749656616387000-1.jsonrpc.sagarpc.io
+PRIVATE_KEY=your_private_key_here
+
+# Chainlet Information
+CHAINLET_ID=devpros_2749656616387000-1
+BLOCK_EXPLORER=https://devpros-2749656616387000-1.sagaexplorer.io
+```
+
+## 🔗 Links
+
+- **Block Explorer**: [Saga Explorer](https://devpros-2749656616387000-1.sagaexplorer.io)
+- **Deployment Records**: [saga-deployment.json](./deployments/saga-deployment.json)
+- **Contract Source**: [Verified Contracts](https://devpros-2749656616387000-1.sagaexplorer.io)
 
 ## 🤝 Contributing
 
@@ -553,13 +229,17 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 📞 Support
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support
 
 For support and questions:
 - Create an issue in the repository
-- Join our Discord community
-- Follow our documentation
+- Check the deployment logs in `/deployments`
+- Review contract interactions on Saga Explorer
 
 ---
 
-*Built with ❤️ on Saga Chainlet*
+*Built with ❤️ on Saga Chainlet - Powering the future of decentralized NFT finance*
