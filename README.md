@@ -168,60 +168,249 @@ graph LR
 
 ### Function Use Cases
 
+#### NFT Vault Use Cases
+
 ```mermaid
-graph TB
+graph LR
+    subgraph "Actors"
+        NFTHolder[NFT Holder]
+        LoanManager[Loan Manager]
+        Oracle[Oracle System]
+        Admin[Vault Admin]
+    end
+    
     subgraph "NFT Vault Functions"
-        VF1[depositNFT]
-        VF2[withdrawNFT]
-        VF3[calculateCollateralValue]
-        VF4[updateRiskTier]
-        VF5[liquidatePosition]
+        UC1[depositNFT]
+        UC2[withdrawNFT]
+        UC3[calculateCollateralValue]
+        UC4[updateRiskTier]
+        UC5[liquidatePosition]
+        UC6[setCollateralFactor]
+        UC7[pauseVault]
+        UC8[updateOracle]
+    end
+    
+    NFTHolder --> UC1
+    NFTHolder --> UC2
+    LoanManager --> UC3
+    LoanManager --> UC5
+    Oracle --> UC3
+    Admin --> UC4
+    Admin --> UC6
+    Admin --> UC7
+    Admin --> UC8
+    
+    style NFTHolder fill:#e3f2fd
+    style LoanManager fill:#f3e5f5
+    style Oracle fill:#fff3e0
+    style Admin fill:#e8f5e8
+```
+
+#### DPO Token Use Cases
+
+```mermaid
+graph LR
+    subgraph "Actors"
+        TokenHolder[DPO Token Holder]
+        Trader[Trader]
+        LoanManager[Loan Manager]
+        InterestDistributor[Interest Distributor]
+        Minter[Authorized Minter]
     end
     
     subgraph "DPO Token Functions"
-        DF1[mint]
-        DF2[burn]
-        DF3[distributeInterest]
-        DF4[claimInterest]
-        DF5[placeBuyOrder]
-        DF6[placeSellOrder]
+        UC1[mint]
+        UC2[burn]
+        UC3[transfer]
+        UC4[distributeInterest]
+        UC5[claimInterest]
+        UC6[placeBuyOrder]
+        UC7[placeSellOrder]
+        UC8[authorizeMinter]
+        UC9[mintOnLoan]
+    end
+    
+    TokenHolder --> UC2
+    TokenHolder --> UC3
+    TokenHolder --> UC5
+    Trader --> UC6
+    Trader --> UC7
+    LoanManager --> UC9
+    InterestDistributor --> UC4
+    Minter --> UC1
+    Minter --> UC8
+    
+    style TokenHolder fill:#e1f5fe
+    style Trader fill:#f1f8e9
+    style LoanManager fill:#fce4ec
+    style InterestDistributor fill:#fff8e1
+    style Minter fill:#f3e5f5
+```
+
+#### Loan Manager Use Cases
+
+```mermaid
+graph LR
+    subgraph "Actors"
+        Borrower[Borrower]
+        Lender[Lender]
+        Liquidator[Liquidator]
+        RiskManager[Risk Manager]
+        Oracle[Oracle Provider]
     end
     
     subgraph "Loan Manager Functions"
-        LF1[createLoan]
-        LF2[repayLoan]
-        LF3[calculateInterest]
-        LF4[liquidate]
-        LF5[updateHealthFactor]
+        UC1[createLoan]
+        UC2[repayLoan]
+        UC3[calculateInterest]
+        UC4[liquidate]
+        UC5[updateHealthFactor]
+        UC6[updateInterestRate]
+        UC7[pauseLending]
+        UC8[setLiquidationThreshold]
+        UC9[emergencyWithdraw]
+    end
+    
+    Borrower --> UC1
+    Borrower --> UC2
+    Lender --> UC3
+    Liquidator --> UC4
+    RiskManager --> UC5
+    RiskManager --> UC6
+    RiskManager --> UC7
+    RiskManager --> UC8
+    Oracle --> UC5
+    Borrower --> UC9
+    
+    style Borrower fill:#e8f5e8
+    style Lender fill:#e3f2fd
+    style Liquidator fill:#ffebee
+    style RiskManager fill:#f3e5f5
+    style Oracle fill:#fff3e0
+```
+
+#### Governance System Use Cases
+
+```mermaid
+graph LR
+    subgraph "Actors"
+        TokenHolder[Governance Token Holder]
+        Proposer[Proposal Creator]
+        Voter[Voter]
+        Delegate[Delegate]
+        Executor[Proposal Executor]
     end
     
     subgraph "Governance Functions"
-        GF1[createProposal]
-        GF2[vote]
-        GF3[executeProposal]
-        GF4[delegate]
-        GF5[updateQuorum]
+        UC1[createProposal]
+        UC2[vote]
+        UC3[executeProposal]
+        UC4[delegate]
+        UC5[updateQuorum]
+        UC6[cancelProposal]
+        UC7[queueProposal]
+        UC8[getCurrentVotes]
+        UC9[getPriorVotes]
+    end
+    
+    TokenHolder --> UC4
+    TokenHolder --> UC8
+    Proposer --> UC1
+    Proposer --> UC6
+    Voter --> UC2
+    Voter --> UC9
+    Delegate --> UC2
+    Executor --> UC3
+    Executor --> UC5
+    Executor --> UC7
+    
+    style TokenHolder fill:#e8f5e8
+    style Proposer fill:#e3f2fd
+    style Voter fill:#fff3e0
+    style Delegate fill:#f3e5f5
+    style Executor fill:#ffebee
+```
+
+#### GameFi Oracle Use Cases
+
+```mermaid
+graph LR
+    subgraph "Actors"
+        OracleOperator[Oracle Operator]
+        PriceFeedProvider[Price Feed Provider]
+        UtilityAnalyst[Utility Analyst]
+        DataValidator[Data Validator]
+        Consumer[Oracle Consumer]
     end
     
     subgraph "Oracle Functions"
-        OF1[updatePrice]
-        OF2[updateUtilityScore]
-        OF3[getCollectionMetrics]
-        OF4[validatePrice]
+        UC1[updatePrice]
+        UC2[updateUtilityScore]
+        UC3[getCollectionMetrics]
+        UC4[validatePrice]
+        UC5[addPriceFeed]
+        UC6[removePriceFeed]
+        UC7[setValidationThreshold]
+        UC8[emergencyPause]
+        UC9[getLatestPrice]
     end
     
-    VF1 --> DF1
-    VF2 --> DF2
-    VF3 --> OF1
-    LF1 --> VF3
-    LF4 --> VF5
-    GF3 --> LF5
+    OracleOperator --> UC5
+    OracleOperator --> UC6
+    OracleOperator --> UC7
+    OracleOperator --> UC8
+    PriceFeedProvider --> UC1
+    UtilityAnalyst --> UC2
+    DataValidator --> UC4
+    Consumer --> UC3
+    Consumer --> UC9
     
-    style VF1 fill:#ffcdd2
-    style DF1 fill:#c8e6c9
-    style LF1 fill:#bbdefb
-    style GF1 fill:#d1c4e9
-    style OF1 fill:#ffe0b2
+    style OracleOperator fill:#e8f5e8
+    style PriceFeedProvider fill:#e3f2fd
+    style UtilityAnalyst fill:#fff3e0
+    style DataValidator fill:#f3e5f5
+    style Consumer fill:#ffebee
+```
+
+#### Bridge System Use Cases
+
+```mermaid
+graph LR
+    subgraph "Actors"
+        User[Bridge User]
+        Validator[Bridge Validator]
+        Relayer[Cross-chain Relayer]
+        BridgeOperator[Bridge Operator]
+        SecurityCouncil[Security Council]
+    end
+    
+    subgraph "Bridge Functions"
+        UC1[bridgeToChain]
+        UC2[receiveFromChain]
+        UC3[validateBridge]
+        UC4[claimBridgedAsset]
+        UC5[pauseBridge]
+        UC6[updateValidator]
+        UC7[setMinimumConfirmations]
+        UC8[emergencyWithdraw]
+        UC9[getBridgeStatus]
+    end
+    
+    User --> UC1
+    User --> UC4
+    User --> UC9
+    Validator --> UC3
+    Relayer --> UC2
+    BridgeOperator --> UC5
+    BridgeOperator --> UC6
+    BridgeOperator --> UC7
+    SecurityCouncil --> UC8
+    
+    style User fill:#e8f5e8
+    style Validator fill:#e3f2fd
+    style Relayer fill:#fff3e0
+    style BridgeOperator fill:#f3e5f5
+    style SecurityCouncil fill:#ffebee
 ```
 
 ## 🏗️ Class Diagram
