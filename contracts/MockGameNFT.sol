@@ -1,4 +1,3 @@
-
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.21;
 
@@ -8,11 +7,6 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 
 contract MockGameNFT is ERC721, Ownable {
     using Strings for uint256;
-
-    // CoinGecko asset platform ID cho Ethereum
-    string private constant ASSET_PLATFORM = "ethereum";
-    // Base URL của CoinGecko NFT API
-    string private constant BASE_URI = "https://api.coingecko.com/api/v3/nfts/";
 
     constructor(string memory name, string memory symbol)
         ERC721(name, symbol)
@@ -27,22 +21,14 @@ contract MockGameNFT is ERC721, Ownable {
         return _ownerOf(tokenId) != address(0);
     }
 
-    /// @notice Trả về URI theo chuẩn CoinGecko NFT API  
-    /// @dev Endpoint: GET /nfts/{asset_platform}/contract/{contract_address}?token_ids[]=tokenId
-    function tokenURI(uint256 tokenId) public view override returns (string memory) {
-        require(_ownerOf(tokenId) != address(0), "Token does not exist");
+    function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
+        require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
 
-        // Định dạng URL:
-        // https://api.coingecko.com/api/v3/nfts/ethereum/contract/0x1234...abcd?token_ids%5B%5D=1
-        return string(
-            abi.encodePacked(
-                BASE_URI,
-                ASSET_PLATFORM,
-                "/contract/",
-                Strings.toHexString(uint160(address(this)), 20),
-                "?token_ids%5B%5D=",
-                tokenId.toString()
-            )
-        );
+        // Return mock IPFS metadata for testing
+        return string(abi.encodePacked(
+            "ipfs://QmTest",
+            Strings.toString(tokenId),
+            "/metadata.json"
+        ));
     }
 }

@@ -4,7 +4,7 @@ const { time } = require("@nomicfoundation/hardhat-toolbox/network-helpers");
 
 describe("Mosaical MVP Test Suite", function () {
   let admin, borrower, lender, treasury;
-  let nftVault, loanManager, dpoToken, oracle, bridge;
+  let nftVault, dpoToken, oracle;
   let gameNFT, governanceToken, governance;
   let chainletId, collectionAddress;
 
@@ -43,25 +43,9 @@ describe("Mosaical MVP Test Suite", function () {
     dpoToken = await DPOTokenV3.deploy();
     await dpoToken.waitForDeployment();
 
-    // Deploy LoanManager
-    const LoanManagerV3 = await ethers.getContractFactory("LoanManagerV3");
+    // Authorize NFTVault to mint DPO tokens
     const nftVaultAddress = await nftVault.getAddress();
-    const dpoTokenAddress = await dpoToken.getAddress();
-    loanManager = await LoanManagerV3.deploy(
-      nftVaultAddress,
-      dpoTokenAddress
-    );
-    await loanManager.waitForDeployment();
-
-    // Deploy MosaicalSagaBridge
-    const MosaicalSagaBridge = await ethers.getContractFactory("MosaicalSagaBridge");
-    const mockLayerZeroEndpoint = "0x1234567890123456789012345678901234567890";
-    bridge = await MosaicalSagaBridge.deploy(mockLayerZeroEndpoint); // Mock LayerZero endpoint
-    await bridge.waitForDeployment();
-
-    // Authorize LoanManager to mint DPO tokens
-    const loanManagerAddress = await loanManager.getAddress();
-    await dpoToken.authorizeMinter(loanManagerAddress);
+    await dpoToken.authorizeMinter(nftVaultAddress);
 
     // Fund DPO token contract for interest distribution
     await admin.sendTransaction({

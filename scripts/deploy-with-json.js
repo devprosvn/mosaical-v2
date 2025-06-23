@@ -25,9 +25,7 @@ async function main() {
     { name: "GameFiOracleV3", args: [] },
     { name: "NFTVaultV3", args: ["oracle"] }, // Will be replaced with actual address
     { name: "MosaicalGovernance", args: ["govToken"] }, // Will be replaced with actual address
-    { name: "DPOTokenV3", args: [] },
-    { name: "LoanManagerV3", args: ["vault", "dpoToken"] }, // Will be replaced with actual addresses
-    { name: "MosaicalSagaBridge", args: ["0x0000000000000000000000000000000000000000"] }
+    { name: "DPOTokenV3", args: [] }
   ];
 
   const deployedContracts = {};
@@ -42,10 +40,16 @@ async function main() {
       let deployArgs = contractInfo.args.map(arg => {
         if (arg === "oracle") return deployedContracts.GameFiOracleV3;
         if (arg === "govToken") return deployedContracts.GovernanceToken;
-        if (arg === "vault") return deployedContracts.NFTVaultV3;
-        if (arg === "dpoToken") return deployedContracts.DPOTokenV3;
         return arg;
       });
+
+      // Special setup after DPOTokenV3 deployment
+      if (contractInfo.name === "DPOTokenV3" && deployedContracts.NFTVaultV3) {
+        console.log('🔧 Authorizing NFTVault as DPO token minter...');
+        const DPOTokenContract = await hre.ethers.getContractAt("DPOTokenV3", contractAddress);
+        await DPOTokenContract.authorizeMinter(deployedContracts.NFTVaultV3);
+        console.log('✅ NFTVault authorized as DPO token minter');
+      }
 
       const contract = await ContractFactory.deploy(...deployArgs);
       await contract.waitForDeployment();

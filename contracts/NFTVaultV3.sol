@@ -12,9 +12,14 @@ interface IGameFiOracle {
     function isActiveAsset(address collection, uint256 tokenId) external view returns (bool);
 }
 
+interface IDPOToken {
+    function mintOnLoan(address collection, uint256 tokenId, address borrower, uint256 amount) external;
+}
+
 contract NFTVaultV3 is Ownable, ReentrancyGuard {
 
     IGameFiOracle public oracle;
+    IDPOToken public dpoToken;
 
     // Core data structures
     struct NFTDeposit {
@@ -105,6 +110,10 @@ contract NFTVaultV3 is Ownable, ReentrancyGuard {
         oracle = IGameFiOracle(_oracle);
     }
 
+    function setDPOToken(address _dpoToken) external onlyOwner {
+        dpoToken = IDPOToken(_dpoToken);
+    }
+
     // Core NFT functions
     function depositNFT(address collection, uint256 tokenId) external nonReentrant {
         require(collectionConfigs[collection].isSupported, "Collection not supported");
@@ -152,6 +161,11 @@ contract NFTVaultV3 is Ownable, ReentrancyGuard {
             interestRate: config.baseInterestRate,
             isActive: true
         });
+
+        // Mint DPO tokens if DPO token contract is set
+        if (address(dpoToken) != address(0)) {
+            dpoToken.mintOnLoan(collection, tokenId, msg.sender, amount);
+        }
 
         // Transfer native DPSV to borrower
         (bool success, ) = payable(msg.sender).call{value: amount}("");

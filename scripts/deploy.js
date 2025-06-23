@@ -76,28 +76,6 @@ async function deploy() {
         await dpoToken.waitForDeployment();
         console.log('DPOTokenV3 deployed to:', await dpoToken.getAddress());
 
-        // Deploy LoanManagerV3
-        const LoanManagerV3 = JSON.parse(fs.readFileSync(
-            path.join(contractsPath, 'LoanManagerV3.sol/LoanManagerV3.json')
-        ));
-        const loanManagerFactory = new ethers.ContractFactory(LoanManagerV3.abi, LoanManagerV3.bytecode, wallet);
-        const loanManager = await loanManagerFactory.deploy(
-            await vault.getAddress(),
-            await dpoToken.getAddress()
-        );
-        await loanManager.waitForDeployment();
-        console.log('LoanManagerV3 deployed to:', await loanManager.getAddress());
-
-           // Deploy MosaicalSagaBridge (paused by default)
-        const MosaicalSagaBridge = JSON.parse(fs.readFileSync(
-            path.join(contractsPath, 'MosaicalSagaBridge.sol/MosaicalSagaBridge.json')
-        ));
-        const bridgeFactory = new ethers.ContractFactory(MosaicalSagaBridge.abi, MosaicalSagaBridge.bytecode, wallet);
-        const bridge = await bridgeFactory.deploy("0x0000000000000000000000000000000000000000"); // Null endpoint - bridge will be paused
-        await bridge.waitForDeployment();
-        console.log(`MosaicalSagaBridge deployed to: ${await bridge.getAddress()}`);
-
-
         // Save deployment info
         const deploymentInfo = {
             network: process.env.NETWORK,
@@ -112,8 +90,6 @@ async function deploy() {
                 NFTVaultV3: await vault.getAddress(),
                 MosaicalGovernance: await governance.getAddress(),
                 DPOTokenV3: await dpoToken.getAddress(),
-                LoanManagerV3: await loanManager.getAddress(),
-                MosaicalSagaBridge: await bridge.getAddress()
             }
         };
 
