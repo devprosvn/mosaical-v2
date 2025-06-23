@@ -151,7 +151,7 @@ contract NFTVaultV3 is Ownable, ReentrancyGuard {
         require(!loans[collection][tokenId].isActive, "Active loan exists");
 
         uint256 maxBorrow = getMaxBorrowAmount(collection, tokenId);
-        require(amount <= maxBorrow, "Exceeds max LTV");
+        require(amount <= maxBorrow, "Amount exceeds max borrow");
         require(address(this).balance >= amount, "Insufficient funds");
 
         CollectionConfig memory config = collectionConfigs[collection];
@@ -299,9 +299,9 @@ contract NFTVaultV3 is Ownable, ReentrancyGuard {
             if (baseLTV == 0) baseLTV = 7000; // Default 70% in basis points
         }
 
-        // Add utility score bonus (already in basis points)
+        // Add utility score bonus (convert to basis points)
         uint256 utilityScore = oracle.getUtilityScore(collection, tokenId);
-        uint256 utilityBonus = utilityScore * 10; // 1% (100 basis points) per 10 utility points
+        uint256 utilityBonus = (utilityScore * 100) / 10; // 1% (100 basis points) per 10 utility points
 
         return baseLTV + utilityBonus;
     }
