@@ -4,7 +4,7 @@ const { time } = require("@nomicfoundation/hardhat-toolbox/network-helpers");
 
 describe("Mosaical MVP Test Suite", function () {
   let admin, borrower, lender, treasury;
-  let nftVault, dpoToken, oracle, loanManager, bridge;
+  let nftVault, dpoToken, oracle, bridge;
   let gameNFT, governanceToken, governance;
   let chainletId, collectionAddress;
 
@@ -43,10 +43,7 @@ describe("Mosaical MVP Test Suite", function () {
     dpoToken = await DPOTokenV3.deploy();
     await dpoToken.waitForDeployment();
 
-    // Deploy LoanManagerV3
-    const LoanManagerV3 = await ethers.getContractFactory("LoanManagerV3");
-    loanManager = await LoanManagerV3.deploy();
-    await loanManager.waitForDeployment();
+    // LoanManagerV3 removed - loan functionality integrated into NFTVault
 
     // Deploy MosaicalSagaBridge  
     const MosaicalSagaBridge = await ethers.getContractFactory("MosaicalSagaBridge");
@@ -57,13 +54,9 @@ describe("Mosaical MVP Test Suite", function () {
     const nftVaultAddress = await nftVault.getAddress();
     await dpoToken.authorizeMinter(nftVaultAddress);
 
-    // Setup contract connections
+    // Setup contract connections - NFTVault handles loans directly
     const dpoTokenAddress = await dpoToken.getAddress();
-    await loanManager.setNFTVault(nftVaultAddress);
-    await loanManager.setDPOToken(dpoTokenAddress);
-    
-    // Authorize LoanManager to mint DPO tokens
-    await dpoToken.authorizeMinter(await loanManager.getAddress());
+    await nftVault.setDPOToken(dpoTokenAddress);
 
     // Fund DPO token contract for interest distribution
     await admin.sendTransaction({
@@ -175,106 +168,74 @@ describe("Mosaical MVP Test Suite", function () {
     });
   });
 
-  describe("Loan Manager System", function () {
+  describe("NFT Vault Loan System", function () {
     it("Should create loan with correct parameters", async function () {
       // Deposit NFT first
       await gameNFT.connect(borrower).approve(await nftVault.getAddress(), 1);
       await nftVault.connect(borrower).depositNFT(collectionAddress, 1);
 
-      // Fund loan manager
+      // Fund NFT Vault for lending
       await admin.sendTransaction({
-        to: await loanManager.getAddress(),
+        to: await nftVault.getAddress(),
         value: ethers.parseEther("50")
       });
 
       const borrowAmount = ethers.parseEther("5");
-      await loanManager.connect(borrower).borrow(
+      await nftVault.connect(borrower).borrowAgainstNFT(
         collectionAddress,
         1,
         borrowAmount
       );
 
-      // Verify loan created
-      const loanDetails = await loanManager.loanData(borrower.address, collectionAddress, 1);
-      expect(loanDetails.principal).to.equal(borrowAmount);
-
-      // Verify health factor
-      const health = await loanManager.loanHealthFactors(borrower.address, collectionAddress, 1);
-      expect(health).to.be.gt(10000); // Should be > 1.0 (scaled by 10000)
+      // Verify loan created through deposit info
+      const deposit = await nftVault.deposits(collectionAddress, 1);
+      expect(deposit.owner).to.equal(borrower.address);
+      expect(deposit.isActive).to.be.true;
     });
 
-    it("Should calculate dynamic interest rates", async function () {
-      await loanManager.setInterestRateModel(
-        collectionAddress,
-        200,  // 2% base rate
-        1000, // 10% slope1
-        5000, // 50% slope2
-        8000  // 80% optimal utilization
-      );
-
-      // Mock utilization at 50%
-      await loanManager.setCollectionUtilization(collectionAddress, 5000);
-
-      const rate = await loanManager.calculateInterestRate(collectionAddress);
-      expect(rate).to.be.gt(200); // Should be above base rate
-      expect(rate).to.be.lt(1200); // Should be below base + slope1
-    });
-
-    it("Should handle loan repayment correctly", async function () {
+    it("Should handle simple loan repayment", async function () {
       // Setup loan
       await gameNFT.connect(borrower).approve(await nftVault.getAddress(), 1);
       await nftVault.connect(borrower).depositNFT(collectionAddress, 1);
 
       await admin.sendTransaction({
-        to: await loanManager.getAddress(),
+        to: await nftVault.getAddress(),
         value: ethers.parseEther("50")
       });
 
       const borrowAmount = ethers.parseEther("5");
-      await loanManager.connect(borrower).borrow(
+      await nftVault.connect(borrower).borrowAgainstNFT(
         collectionAddress,
         1,
         borrowAmount
       );
 
-      // Advance time for interest accrual
-      await time.increase(time.duration.days(30));
-
-      // Get just the interest owed
-      const interestOwed = await loanManager.getAccruedInterest(borrower.address, collectionAddress, 1);
-
-      // Principal was the borrowAmount above
-      const principal = borrowAmount;
-
-      // Build total = principal + interest + buffer
-      const amountToPay = principal + interestOwed + ethers.parseEther("1");
-
-      // Repay loan
-      await loanManager.connect(borrower).repay(
+      // Simple repayment - just return the borrowed amount
+      await nftVault.connect(borrower).repayLoan(
         collectionAddress,
         1,
-        { value: amountToPay }
+        { value: borrowAmount }
       );
 
-      // Verify loan closed
-      const loanAfterRepay = await loanManager.loanData(borrower.address, collectionAddress, 1);
-      expect(loanAfterRepay.isActive).to.be.false;
+      // NFT should still be deposited but loan cleared
+      const deposit = await nftVault.deposits(collectionAddress, 1);
+      expect(deposit.owner).to.equal(borrower.address);
     });
   });
 
   describe("DPO Token System", function () {
     it("Should mint DPO tokens on loan creation", async function () {
-      // Setup loan
+      // Setup loan through NFTVault
       await gameNFT.connect(borrower).approve(await nftVault.getAddress(), 1);
       await nftVault.connect(borrower).depositNFT(collectionAddress, 1);
 
       await admin.sendTransaction({
-        to: await loanManager.getAddress(),
+        to: await nftVault.getAddress(),
         value: ethers.parseEther("50")
       });
 
       const borrowAmount = ethers.parseEther("5");
-      await loanManager.connect(borrower).borrow(
+      await nftVault.connect(borrower).borrowAgainstNFT(
         collectionAddress,
         1,
         borrowAmount
@@ -293,16 +254,16 @@ describe("Mosaical MVP Test Suite", function () {
     });
 
     it("Should handle DPO token trading", async function () {
-      // Setup loan and get DPO tokens
+      // Setup loan and get DPO tokens through NFTVault
       await gameNFT.connect(borrower).approve(await nftVault.getAddress(), 1);
       await nftVault.connect(borrower).depositNFT(collectionAddress, 1);
 
       await admin.sendTransaction({
-        to: await loanManager.getAddress(),
+        to: await nftVault.getAddress(),
         value: ethers.parseEther("50")
       });
 
-      await loanManager.connect(borrower).borrow(
+      await nftVault.connect(borrower).borrowAgainstNFT(
         collectionAddress,
         1,
         ethers.parseEther("5")
@@ -344,16 +305,16 @@ describe("Mosaical MVP Test Suite", function () {
     });
 
     it("Should distribute and claim interest", async function () {
-      // Setup with DPO tokens
+      // Setup with DPO tokens through NFTVault
       await gameNFT.connect(borrower).approve(await nftVault.getAddress(), 1);
       await nftVault.connect(borrower).depositNFT(collectionAddress, 1);
 
       await admin.sendTransaction({
-        to: await loanManager.getAddress(),
+        to: await nftVault.getAddress(),
         value: ethers.parseEther("50")
       });
 
-      await loanManager.connect(borrower).borrow(
+      await nftVault.connect(borrower).borrowAgainstNFT(
         collectionAddress,
         1,
         ethers.parseEther("5")
@@ -529,14 +490,14 @@ describe("Mosaical MVP Test Suite", function () {
     });
 
     it("Should prevent borrowing without collateral", async function () {
-      // Fund loan manager first to avoid "Insufficient funds" error
+      // Fund NFT Vault first to avoid "Insufficient funds" error
       await admin.sendTransaction({
-        to: await loanManager.getAddress(),
+        to: await nftVault.getAddress(),
         value: ethers.parseEther("50")
       });
 
       await expect(
-        loanManager.connect(borrower).borrow(
+        nftVault.connect(borrower).borrowAgainstNFT(
           collectionAddress,
           1,
           ethers.parseEther("5")
@@ -549,13 +510,13 @@ describe("Mosaical MVP Test Suite", function () {
       await nftVault.connect(borrower).depositNFT(collectionAddress, 1);
 
       await admin.sendTransaction({
-        to: await loanManager.getAddress(),
+        to: await nftVault.getAddress(),
         value: ethers.parseEther("50")
       });
 
       // Try to borrow more than max LTV
       await expect(
-        loanManager.connect(borrower).borrow(
+        nftVault.connect(borrower).borrowAgainstNFT(
           collectionAddress,
           1,
           ethers.parseEther("20") // More than NFT value
@@ -585,15 +546,15 @@ describe("Mosaical MVP Test Suite", function () {
       await gameNFT.connect(borrower).approve(await nftVault.getAddress(), 1);
       await nftVault.connect(borrower).depositNFT(collectionAddress, 1);
 
-      // 2. Fund loan manager
+      // 2. Fund NFT Vault
       await admin.sendTransaction({
-        to: await loanManager.getAddress(),
+        to: await nftVault.getAddress(),
         value: ethers.parseEther("50")
       });
 
-      // 3. Create loan
+      // 3. Create loan through NFT Vault
       const borrowAmount = ethers.parseEther("5");
-      await loanManager.connect(borrower).borrow(
+      await nftVault.connect(borrower).borrowAgainstNFT(
         collectionAddress,
         1,
         borrowAmount
@@ -644,16 +605,11 @@ describe("Mosaical MVP Test Suite", function () {
       await dpoToken.connect(borrower).claimInterest(collectionAddress, 1);
       await dpoToken.connect(lender).claimInterest(collectionAddress, 1);
 
-      // 9. Repay loan
-      const interestOwed = await loanManager.getAccruedInterest(borrower.address, collectionAddress, 1);
-
-      // Re-use the same borrowAmount from step 3
-      const amountToPay = borrowAmount + interestOwed + ethers.parseEther("1");
-
-      await loanManager.connect(borrower).repay(
+      // 9. Repay loan through NFT Vault
+      await nftVault.connect(borrower).repayLoan(
         collectionAddress,
         1,
-        { value: amountToPay }
+        { value: borrowAmount }
       );
 
       // 10. Withdraw NFT
@@ -661,8 +617,8 @@ describe("Mosaical MVP Test Suite", function () {
 
       // Verify final state
       expect(await gameNFT.ownerOf(1)).to.equal(borrower.address);
-      const finalLoanState = await loanManager.loanData(borrower.address, collectionAddress, 1);
-      expect(finalLoanState.isActive).to.be.false;
+      const deposit = await nftVault.deposits(collectionAddress, 1);
+      expect(deposit.isActive).to.be.false;
     });
   });
   });

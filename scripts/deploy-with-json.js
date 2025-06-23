@@ -26,7 +26,6 @@ async function main() {
     { name: "NFTVaultV3", args: ["oracle"] }, // Will be replaced with actual address
     { name: "MosaicalGovernance", args: ["govToken"] }, // Will be replaced with actual address
     { name: "DPOTokenV3", args: [] },
-    { name: "LoanManagerV3", args: [] },
     { name: "MosaicalSagaBridge", args: [] }
   ];
 
