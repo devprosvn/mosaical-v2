@@ -22,7 +22,7 @@ contract MockGameNFT is ERC721, Ownable {
     }
 
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
-        require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
+        require(_ownerOf(tokenId) != address(0), "ERC721Metadata: URI query for nonexistent token");
 
         // Return mock IPFS metadata for testing
         return string(abi.encodePacked(
