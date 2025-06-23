@@ -57,6 +57,14 @@ describe("Mosaical MVP Test Suite", function () {
     const nftVaultAddress = await nftVault.getAddress();
     await dpoToken.authorizeMinter(nftVaultAddress);
 
+    // Setup contract connections
+    const dpoTokenAddress = await dpoToken.getAddress();
+    await loanManager.setNFTVault(nftVaultAddress);
+    await loanManager.setDPOToken(dpoTokenAddress);
+    
+    // Authorize LoanManager to mint DPO tokens
+    await dpoToken.authorizeMinter(await loanManager.getAddress());
+
     // Fund DPO token contract for interest distribution
     await admin.sendTransaction({
       to: await dpoToken.getAddress(),
@@ -521,6 +529,12 @@ describe("Mosaical MVP Test Suite", function () {
     });
 
     it("Should prevent borrowing without collateral", async function () {
+      // Fund loan manager first to avoid "Insufficient funds" error
+      await admin.sendTransaction({
+        to: await loanManager.getAddress(),
+        value: ethers.parseEther("50")
+      });
+
       await expect(
         loanManager.connect(borrower).borrow(
           collectionAddress,

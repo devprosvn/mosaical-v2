@@ -287,15 +287,20 @@ contract NFTVaultV3 is Ownable, ReentrancyGuard {
     }
 
     function getMaxLTV(address collection, uint256 tokenId) public view returns (uint256) {
-        uint8 riskTier = collectionRiskTiers[collection];
-        if (riskTier == 0) riskTier = 3; // Default to tier 3
+        uint256 riskTier = collectionRiskTiers[collection];
+        RiskModel storage model = riskModels[riskTier];
+        uint256 baseLTV = model.baseLTV;
 
-        RiskModel memory model = riskModels[riskTier];
+        // Add utility score bonus
         uint256 utilityScore = oracle.getUtilityScore(collection, tokenId);
+        uint256 utilityBonus = utilityScore / 10; // 1% per 10 utility points
 
-        // Add utility bonus (max bonus defined in risk model)
-        uint256 bonus = (utilityScore * model.maxUtilityBonus) / 100;
-        return model.baseLTV + bonus;
+        return baseLTV + utilityBonus;
+    }
+
+    function getDepositInfo(address collection, uint256 tokenId) public view returns (address owner, bool isActive) {
+        NFTDeposit storage deposit = deposits[collection][tokenId];
+        return (deposit.owner, deposit.isActive);
     }
 
     // Events for admin functions
