@@ -225,14 +225,9 @@ contract NFTVaultV3 is Ownable, ReentrancyGuard {
         uint256 floorPrice = oracle.getFloorPrice(collection);
         if (floorPrice == 0) return 0;
 
-        // Use the getMaxLTV function which properly handles risk tiers
+        // getMaxLTV now returns basis points consistently
         uint256 maxLTV = getMaxLTV(collection, tokenId);
         if (maxLTV == 0) return 0;
-
-        // Convert percentage to basis points if needed
-        if (maxLTV <= 100) {
-            maxLTV = maxLTV * 100; // Convert to basis points
-        }
 
         return floorPrice * maxLTV / BASIS_POINTS;
     }
@@ -295,18 +290,18 @@ contract NFTVaultV3 is Ownable, ReentrancyGuard {
         uint256 baseLTV;
         
         if (riskTier > 0 && riskTier <= 5) {
-            // Use risk model if valid tier is set
+            // Use risk model - convert % to basis points
             RiskModel storage model = riskModels[riskTier];
-            baseLTV = model.baseLTV;
+            baseLTV = model.baseLTV * 100; // Convert 65% -> 6500 basis points
         } else {
-            // Fall back to collection config
+            // Fall back to collection config or default
             baseLTV = collectionConfigs[collection].maxLTV;
-            if (baseLTV == 0) baseLTV = 7000; // Default 70%
+            if (baseLTV == 0) baseLTV = 7000; // Default 70% in basis points
         }
 
-        // Add utility score bonus
+        // Add utility score bonus (already in basis points)
         uint256 utilityScore = oracle.getUtilityScore(collection, tokenId);
-        uint256 utilityBonus = utilityScore / 10; // 1% per 10 utility points
+        uint256 utilityBonus = utilityScore * 10; // 1% (100 basis points) per 10 utility points
 
         return baseLTV + utilityBonus;
     }
