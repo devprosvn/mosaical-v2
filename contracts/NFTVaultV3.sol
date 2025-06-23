@@ -287,7 +287,7 @@ contract NFTVaultV3 is Ownable, ReentrancyGuard {
     }
 
     function getMaxLTV(address collection, uint256 tokenId) public view returns (uint256) {
-        uint256 riskTier = collectionRiskTiers[collection];
+        uint8 riskTier = collectionRiskTiers[collection];
         RiskModel storage model = riskModels[riskTier];
         uint256 baseLTV = model.baseLTV;
 
