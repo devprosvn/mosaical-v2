@@ -1,0 +1,51 @@
+II. Các Điểm Cần Xem Xét (Có Thể Đang Đi Sai Hướng hoặc Cần Làm Rõ)
+Đây là những điểm không nhất quán hoặc có thể gây ra vấn đề trong quá trình phát triển.
+
+Xung đột và Thừa thãi trong Logic Vay Vốn (LoanManagerV3.sol vs. NFTVaultV3.sol):
+
+Vấn đề: Đây là điểm không nhất quán lớn nhất. Bạn có hai contracts dường như cùng xử lý logic cho vay.
+NFTVaultV3.sol: Contract này không chỉ quản lý việc gửi/rút NFT  mà còn chứa logic cốt lõi cho việc vay (borrow) , trả nợ (repayLoan) , và thanh lý (liquidate) . Nó tương tác trực tiếp với Oracle để tính toán maxBorrowAmount  và currentLTV.
+
+
+
+
+LoanManagerV3.sol: Contract này cũng có các hàm createLoan , repayLoan , và borrow, nhưng với cấu trúc dữ liệu và logic khác. Ví dụ, nó có vẻ sử dụng một token dpoToken riêng và chuyển trực tiếp DPSV cho người vay.
+
+
+
+Phân tích: NFTVaultV3.sol có vẻ là phiên bản hoàn thiện và phù hợp hơn với kiến trúc tổng thể, nơi vault vừa là nơi giữ tài sản thế chấp vừa quản lý các khoản vay trên tài sản đó. LoanManagerV3.sol có thể là một phiên bản cũ hơn hoặc một hướng tiếp cận khác đã bị loại bỏ. Việc duy trì cả hai sẽ gây nhầm lẫn, tăng rủi ro và chi phí kiểm thử.
+Rủi ro: Đi sai hướng nếu bạn cố gắng tích hợp cả hai.
+MockGameNFT.sol không đồng bộ với Kế hoạch Công nghệ:
+
+Vấn đề: Hàm tokenURI trong MockGameNFT.sol được thiết kế để trả về một URL của CoinGecko NFT API.
+
+Kế hoạch: Tài liệu kế hoạch đã ghi rất rõ ràng về việc "transitioning the NFT API from Coingecko to Alchemy" (chuyển đổi API NFT từ Coingecko sang Alchemy).
+Phân tích: Đây là một sự không nhất quán nhỏ nhưng rõ ràng. Contract mock để thử nghiệm nên phản ánh ngăn xếp công nghệ (tech stack) mà bạn dự định sử dụng trong sản phẩm thật.
+Rủi ro: Không phải là rủi ro lớn, nhưng nó cho thấy các công cụ kiểm thử chưa được cập nhật theo kế hoạch mới nhất.
+Vai trò của MosaicalSagaBridge.sol chưa được làm rõ trong Tài liệu:
+
+Vấn đề: Mặc dù MosaicalSagaBridge.sol là một contract rất tốt và phù hợp với mục tiêu, tài liệu MOSAICALDOCUMENT lại không đề cập chi tiết đến nó hay LayerZero. Kế hoạch chỉ nói về "cross-chainlet discoverability" một cách chung chung.
+Phân tích: Việc triển khai một cây cầu (bridge) là một cấu phần kiến trúc lớn. Nó nên được đưa vào các sơ đồ kiến trúc, mô tả kỹ thuật và kế hoạch kiểm thử trong tài liệu để mọi người trong nhóm hiểu rõ vai trò, rủi ro và cách tích hợp của nó.
+Rủi ro: Thiếu sự đồng bộ trong tài liệu có thể dẫn đến việc tích hợp bị bỏ quên hoặc thực hiện vội vàng ở giai đoạn sau.
+Cơ chế Ủy quyền Mint Token DPO cần được xác định rõ:
+
+Vấn đề: DPOTokenV3.sol yêu cầu mintOnLoan phải được gọi bởi một authorizedMinter.
+Phân tích: Điều này là đúng đắn, nhưng cần phải có một bước rõ ràng trong kịch bản triển khai (deployment script) và tài liệu rằng địa chỉ của contract NFTVaultV3 phải được cấp quyền làm authorizedMinter trên contract DPOTokenV3 bằng cách gọi hàm authorizeMinter.
+Rủi ro: Bỏ sót bước cấu hình quan trọng này sẽ khiến chức năng cho vay không hoạt động.
+III. Đề Xuất & Hành Động Tiếp Theo
+Hợp nhất Logic Vay Vốn:
+
+Hành động: Quyết định dứt khoát contract nào sẽ chịu trách nhiệm chính cho việc quản lý khoản vay. Đề xuất mạnh mẽ là NFTVaultV3.sol.
+Bước tiếp theo: Chính thức loại bỏ LoanManagerV3.sol khỏi dự án để tránh nhầm lẫn. Nếu có bất kỳ logic hữu ích nào trong LoanManagerV3 mà NFTVaultV3 chưa có, hãy xem xét tích hợp nó vào NFTVaultV3.
+Cập nhật MockGameNFT.sol:
+
+Hành động: Sửa lại hàm tokenURI trong MockGameNFT.sol để nó không còn tham chiếu đến CoinGecko. Vì Alchemy là một API yêu cầu key và được gọi từ backend/off-chain, bạn có thể đơn giản hóa tokenURI để trả về một chuỗi JSON metadata giả lập hoặc một URL trỏ tới IPFS.
+Cập nhật Tài liệu Kế hoạch:
+
+Hành động: Thêm một phần chi tiết về MosaicalSagaBridge và chiến lược cross-chainlet vào tài liệu MOSAICALDOCUMENT. Mô tả cách nó hoạt động, nó sẽ được tích hợp vào giao diện người dùng như thế nào và các rủi ro bảo mật liên quan.
+Tạo Checklist Triển khai:
+
+Hành động: Viết một tài liệu hoặc kịch bản triển khai (deployment script) trong đó ghi rõ các bước cấu hình sau khi deploy, đặc biệt là:
+Cấp quyền cho các "updaters" trên GameFiOracleV3.
+Cấp quyền authorizedMinter cho NFTVaultV3 trên DPOTokenV3.
+Thêm các collection được hỗ trợ vào NFTVaultV3.
