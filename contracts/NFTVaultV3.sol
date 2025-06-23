@@ -301,7 +301,7 @@ contract NFTVaultV3 is Ownable, ReentrancyGuard {
 
         // Add utility score bonus (convert to basis points)
         uint256 utilityScore = oracle.getUtilityScore(collection, tokenId);
-        uint256 utilityBonus = (utilityScore * 100) / 10; // 1% (100 basis points) per 10 utility points
+        uint256 utilityBonus = utilityScore * 10; // Convert to basis points: 85 * 10 = 850 basis points (8.5%)
 
         return baseLTV + utilityBonus;
     }
