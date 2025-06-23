@@ -151,8 +151,8 @@ contract NFTVaultV3 is Ownable, ReentrancyGuard {
         require(!loans[collection][tokenId].isActive, "Active loan exists");
 
         uint256 maxBorrow = getMaxBorrowAmount(collection, tokenId);
-        require(amount <= maxBorrow, "Amount exceeds max borrow");
-        require(address(this).balance >= amount, "Insufficient vault liquidity");
+        require(amount <= maxBorrow, "Exceeds max LTV");
+        require(address(this).balance >= amount, "Insufficient funds");
 
         CollectionConfig memory config = collectionConfigs[collection];
         loans[collection][tokenId] = Loan({
@@ -223,14 +223,18 @@ contract NFTVaultV3 is Ownable, ReentrancyGuard {
         if (!oracle.isActiveAsset(collection, tokenId)) return 0;
 
         uint256 floorPrice = oracle.getFloorPrice(collection);
-        uint256 utilityScore = oracle.getUtilityScore(collection, tokenId);
-        uint256 maxLTV = collectionConfigs[collection].maxLTV;
+        if (floorPrice == 0) return 0;
 
-        // Adjust LTV based on utility score (higher utility = higher LTV)
-        uint256 adjustedLTV = maxLTV + (utilityScore * 500 / 100); // Max 5% bonus
-        if (adjustedLTV > 8000) adjustedLTV = 8000; // Cap at 80%
+        // Use the getMaxLTV function which properly handles risk tiers
+        uint256 maxLTV = getMaxLTV(collection, tokenId);
+        if (maxLTV == 0) return 0;
 
-        return floorPrice * adjustedLTV / BASIS_POINTS;
+        // Convert percentage to basis points if needed
+        if (maxLTV <= 100) {
+            maxLTV = maxLTV * 100; // Convert to basis points
+        }
+
+        return floorPrice * maxLTV / BASIS_POINTS;
     }
 
     function getTotalDebt(address collection, uint256 tokenId) public view returns (uint256) {
@@ -288,8 +292,17 @@ contract NFTVaultV3 is Ownable, ReentrancyGuard {
 
     function getMaxLTV(address collection, uint256 tokenId) public view returns (uint256) {
         uint8 riskTier = collectionRiskTiers[collection];
-        RiskModel storage model = riskModels[riskTier];
-        uint256 baseLTV = model.baseLTV;
+        uint256 baseLTV;
+        
+        if (riskTier > 0 && riskTier <= 5) {
+            // Use risk model if valid tier is set
+            RiskModel storage model = riskModels[riskTier];
+            baseLTV = model.baseLTV;
+        } else {
+            // Fall back to collection config
+            baseLTV = collectionConfigs[collection].maxLTV;
+            if (baseLTV == 0) baseLTV = 7000; // Default 70%
+        }
 
         // Add utility score bonus
         uint256 utilityScore = oracle.getUtilityScore(collection, tokenId);
