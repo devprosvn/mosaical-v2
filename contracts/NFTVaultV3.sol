@@ -13,7 +13,7 @@ interface IGameFiOracle {
 }
 
 interface IDPOToken {
-    function mintTokens(address collection, uint256 tokenId, address borrower, uint256 amount) external;
+    function mintOnLoan(address collection, uint256 tokenId, address borrower, uint256 amount) external;
 }
 
 contract NFTVaultV3 is Ownable, ReentrancyGuard {
@@ -151,7 +151,7 @@ contract NFTVaultV3 is Ownable, ReentrancyGuard {
         require(!loans[collection][tokenId].isActive, "Active loan exists");
 
         uint256 maxBorrow = getMaxBorrowAmount(collection, tokenId);
-        require(amount <= maxBorrow, "Amount exceeds max borrow");
+        require(amount <= maxBorrow, "Exceeds max LTV");
         require(address(this).balance >= amount, "Insufficient funds");
 
         CollectionConfig memory config = collectionConfigs[collection];
@@ -164,7 +164,7 @@ contract NFTVaultV3 is Ownable, ReentrancyGuard {
 
         // Mint DPO tokens if DPO token contract is set
         if (address(dpoToken) != address(0)) {
-            dpoToken.mintTokens(collection, tokenId, msg.sender, amount);
+            dpoToken.mintOnLoan(collection, tokenId, msg.sender, amount);
         }
 
         // Transfer native DPSV to borrower
