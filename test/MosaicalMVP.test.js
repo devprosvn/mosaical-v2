@@ -4,7 +4,7 @@ const { time } = require("@nomicfoundation/hardhat-toolbox/network-helpers");
 
 describe("Mosaical MVP Test Suite", function () {
   let admin, borrower, lender, treasury;
-  let nftVault, dpoToken, oracle;
+  let nftVault, dpoToken, oracle, loanManager, bridge;
   let gameNFT, governanceToken, governance;
   let chainletId, collectionAddress;
 
@@ -42,6 +42,16 @@ describe("Mosaical MVP Test Suite", function () {
     const DPOTokenV3 = await ethers.getContractFactory("DPOTokenV3");
     dpoToken = await DPOTokenV3.deploy();
     await dpoToken.waitForDeployment();
+
+    // Deploy LoanManagerV3
+    const LoanManagerV3 = await ethers.getContractFactory("LoanManagerV3");
+    loanManager = await LoanManagerV3.deploy();
+    await loanManager.waitForDeployment();
+
+    // Deploy MosaicalSagaBridge  
+    const MosaicalSagaBridge = await ethers.getContractFactory("MosaicalSagaBridge");
+    bridge = await MosaicalSagaBridge.deploy();
+    await bridge.waitForDeployment();
 
     // Authorize NFTVault to mint DPO tokens
     const nftVaultAddress = await nftVault.getAddress();

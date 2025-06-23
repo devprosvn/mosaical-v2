@@ -25,7 +25,9 @@ async function main() {
     { name: "GameFiOracleV3", args: [] },
     { name: "NFTVaultV3", args: ["oracle"] }, // Will be replaced with actual address
     { name: "MosaicalGovernance", args: ["govToken"] }, // Will be replaced with actual address
-    { name: "DPOTokenV3", args: [] }
+    { name: "DPOTokenV3", args: [] },
+    { name: "LoanManagerV3", args: [] },
+    { name: "MosaicalSagaBridge", args: [] }
   ];
 
   const deployedContracts = {};
