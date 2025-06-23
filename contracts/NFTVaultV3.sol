@@ -13,7 +13,7 @@ interface IGameFiOracle {
 }
 
 interface IDPOToken {
-    function mintOnLoan(address collection, uint256 tokenId, address borrower, uint256 amount) external;
+    function mintTokens(address collection, uint256 tokenId, address borrower, uint256 amount) external;
 }
 
 contract NFTVaultV3 is Ownable, ReentrancyGuard {
@@ -164,7 +164,7 @@ contract NFTVaultV3 is Ownable, ReentrancyGuard {
 
         // Mint DPO tokens if DPO token contract is set
         if (address(dpoToken) != address(0)) {
-            dpoToken.mintOnLoan(collection, tokenId, msg.sender, amount);
+            dpoToken.mintTokens(collection, tokenId, msg.sender, amount);
         }
 
         // Transfer native DPSV to borrower

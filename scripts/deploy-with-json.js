@@ -1,13 +1,12 @@
-
 const fs = require('fs');
 const path = require('path');
 
 async function main() {
   console.log('🚀 Deploying contracts to devpros chainlet with JSON output...');
-  
+
   const [deployer] = await hre.ethers.getSigners();
   console.log("Deploying contracts with account:", deployer.address);
-  
+
   const balance = await hre.ethers.provider.getBalance(deployer.address);
   console.log("Account balance:", hre.ethers.formatEther(balance), "DPSV");
 
@@ -33,10 +32,10 @@ async function main() {
 
   for (const contractInfo of contracts) {
     console.log(`\n📝 Deploying ${contractInfo.name}...`);
-    
+
     try {
       const ContractFactory = await hre.ethers.getContractFactory(contractInfo.name);
-      
+
       // Replace placeholder args with actual addresses
       let deployArgs = contractInfo.args.map(arg => {
         if (arg === "oracle") return deployedContracts.GameFiOracleV3;
@@ -54,22 +53,22 @@ async function main() {
 
       const contract = await ContractFactory.deploy(...deployArgs);
       await contract.waitForDeployment();
-      
+
       const contractAddress = await contract.getAddress();
       deployedContracts[contractInfo.name] = contractAddress;
-      
+
       console.log(`✅ ${contractInfo.name} deployed to: ${contractAddress}`);
 
       // Get contract artifact for JSON output
       const artifactPath = path.join(__dirname, `../artifacts/contracts/${contractInfo.name}.sol/${contractInfo.name}.json`);
       if (fs.existsSync(artifactPath)) {
         const artifact = JSON.parse(fs.readFileSync(artifactPath, 'utf8'));
-        
+
         // Add to contracts output following Solidity compiler format
         if (!outputJson.contracts[`contracts/${contractInfo.name}.sol`]) {
           outputJson.contracts[`contracts/${contractInfo.name}.sol`] = {};
         }
-        
+
         outputJson.contracts[`contracts/${contractInfo.name}.sol`][contractInfo.name] = {
           abi: artifact.abi,
           evm: {

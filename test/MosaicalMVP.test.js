@@ -181,7 +181,7 @@ describe("Mosaical MVP Test Suite", function () {
       });
 
       const borrowAmount = ethers.parseEther("5");
-      await nftVault.connect(borrower).borrowAgainstNFT(
+      await nftVault.connect(borrower).borrow(
         collectionAddress,
         1,
         borrowAmount
@@ -204,7 +204,7 @@ describe("Mosaical MVP Test Suite", function () {
       });
 
       const borrowAmount = ethers.parseEther("5");
-      await nftVault.connect(borrower).borrowAgainstNFT(
+      await nftVault.connect(borrower).borrow(
         collectionAddress,
         1,
         borrowAmount
@@ -235,7 +235,7 @@ describe("Mosaical MVP Test Suite", function () {
       });
 
       const borrowAmount = ethers.parseEther("5");
-      await nftVault.connect(borrower).borrowAgainstNFT(
+      await nftVault.connect(borrower).borrow(
         collectionAddress,
         1,
         borrowAmount
@@ -263,7 +263,7 @@ describe("Mosaical MVP Test Suite", function () {
         value: ethers.parseEther("50")
       });
 
-      await nftVault.connect(borrower).borrowAgainstNFT(
+      await nftVault.connect(borrower).borrow(
         collectionAddress,
         1,
         ethers.parseEther("5")
@@ -314,7 +314,7 @@ describe("Mosaical MVP Test Suite", function () {
         value: ethers.parseEther("50")
       });
 
-      await nftVault.connect(borrower).borrowAgainstNFT(
+      await nftVault.connect(borrower).borrow(
         collectionAddress,
         1,
         ethers.parseEther("5")
@@ -497,7 +497,7 @@ describe("Mosaical MVP Test Suite", function () {
       });
 
       await expect(
-        nftVault.connect(borrower).borrowAgainstNFT(
+        nftVault.connect(borrower).borrow(
           collectionAddress,
           1,
           ethers.parseEther("5")
@@ -516,7 +516,7 @@ describe("Mosaical MVP Test Suite", function () {
 
       // Try to borrow more than max LTV
       await expect(
-        nftVault.connect(borrower).borrowAgainstNFT(
+        nftVault.connect(borrower).borrow(
           collectionAddress,
           1,
           ethers.parseEther("20") // More than NFT value
@@ -554,7 +554,7 @@ describe("Mosaical MVP Test Suite", function () {
 
       // 3. Create loan through NFT Vault
       const borrowAmount = ethers.parseEther("5");
-      await nftVault.connect(borrower).borrowAgainstNFT(
+      await nftVault.connect(borrower).borrow(
         collectionAddress,
         1,
         borrowAmount
