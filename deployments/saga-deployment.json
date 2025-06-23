@@ -3,13 +3,13 @@
   "chainletId": "devpros_2749656616387000-1",
   "rpcUrl": "https://devpros-2749656616387000-1.jsonrpc.sagarpc.io",
   "blockExplorer": "https://devpros-2749656616387000-1.sagaexplorer.io",
-  "timestamp": "2025-06-23T20:27:54.626Z",
+  "timestamp": "2025-06-23T20:30:00.228Z",
   "contracts": {
-    "MockGameNFT": "0x1F83B016e7188f5D95B1f7664980aEB469495E0c",
-    "GovernanceToken": "0xa6D4Ab504B8ac0dF8a61057d2157C71aF0AD3B45",
-    "GameFiOracleV3": "0x2b4cF0230c097d2b64376a8Aed88113F9ea0E281",
-    "NFTVaultV3": "0xEa68C5234943149Cd12ADFa5C938cF3031F0A3fB",
-    "MosaicalGovernance": "0x566AdFc9eBEAB70bE5B40bB6EA1bEcA0cad93eB9",
-    "DPOTokenV3": "0x1ED6749DC306b64CAAdA75eF327cb024e916bf06"
+    "MockGameNFT": "0x305562c9edffc644F44a7239489dEb3860EF802b",
+    "GovernanceToken": "0xa33CD6E6BF20c856a6e85fC364a659016cC98cA0",
+    "GameFiOracleV3": "0x721E65f36bF53b67Ce854d216dE9F44eC09E754B",
+    "NFTVaultV3": "0x570B43A1249605E40a92b2A9e26F27Ee6E819B29",
+    "MosaicalGovernance": "0xf1333D25Ead43dbA65a0abB4AD1484125Eb8ab0D",
+    "DPOTokenV3": "0x3E459d8C6583b2F83303b1D0a321266ed5841d34"
   }
 }
