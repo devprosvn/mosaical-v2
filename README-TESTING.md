@@ -12,21 +12,11 @@ This guide will walk you through testing the Mosaical GameFi NFT Lending Platfor
 
 ### 1. Configure MetaMask for DevPros Network
 
-Add the DevPros network to MetaMask:
-- Network Name: Devpros Chainlet
-- RPC URL: https://devpros-2749656616387000-1.jsonrpc.sagarpc.io
-- Chain ID: 2749656616387000
-- Currency Symbol: DPSV
-- Block Explorer URL: https://devpros-2749656616387000-1.sagaexplorer.io
+Add the internal test-network to MetaMask using the parameters provided by the team (RPC URL, Chain ID, symbol, explorer).  These values have been **redacted** from the public repository.
 
 ### 2. Import Test Wallet
 
-Import the test wallet into MetaMask using the private key:
-```
-0x089508337775c666afba30ff3ea382b8db512952103958136f0170280e818068
-```
-
-**Note:** This is a test wallet with test funds. Do not send real assets to this wallet.
+Import a funded test wallet supplied privately by the maintainers.  _Do **not** use real assets._
 
 ## Mint Test NFTs
 
@@ -140,10 +130,4 @@ Admin functions are available on the Admin page for the contract owner:
 
 ## Contract Addresses
 
-The following smart contracts are used by the frontend:
-
-- NFT Vault: 0x32B3275Fa5E3E52AF6c42C9143699086dc83E760
-- DPO Token: 0x8dd2383361aA2bcF7a1B41BA2E8Cbd831809a852
-- GameFi Oracle: 0x46f7F373864ffF22c7280CD91C26Fe7eb904dc35
-- Governance: 0x5B8A466F95f12cD36d8692B2371047FBb12D2841
-- Mock Game NFT: 0x9BD14Eb8581F1B47f01836657BFe572D799610D9 
+Contract addresses are now loaded from `/frontend/src/constants/contracts.js`, which is generated during deployment and **git-ignored**.  Refer to that file locally for the exact values. 

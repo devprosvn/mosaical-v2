@@ -39,11 +39,12 @@ Script này sẽ:
 ```javascript
 // frontend/src/constants/contracts.js
 export const CONTRACT_ADDRESSES = {
-  NFTVault: "0x32B3275Fa5E3E52AF6c42C9143699086dc83E760",
-  DPOToken: "0x8dd2383361aA2bcF7a1B41BA2E8Cbd831809a852", 
-  GameFiOracle: "0x46f7F373864ffF22c7280CD91C26Fe7eb904dc35",
-  MosaicalGovernance: "0x5B8A466F95f12cD36d8692B2371047FBb12D2841", 
-  MockGameNFT: "0x9BD14Eb8581F1B47f01836657BFe572D799610D9"
+  //  Addresses inserted automatically by deployment script (file is git-ignored)
+  NFTVault: "<redacted>",
+  DPOToken: "<redacted>",
+  GameFiOracle: "<redacted>",
+  MosaicalGovernance: "<redacted>",
+  MockGameNFT: "<redacted>"
 }
 ```
 

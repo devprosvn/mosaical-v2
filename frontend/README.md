@@ -1,88 +1,112 @@
-# Mosaical DeFi Frontend
+# Mosaical DeFi – Front-End (`frontend/`)
 
-A React-based frontend for the Mosaical GameFi NFT lending platform.
+This package delivers the **single-page application (SPA)** that interacts with the Mosaical smart-contracts.  It lets players deposit NFTs, borrow & repay, trade DPO tokens and perform admin actions.
 
-## Project Overview
+---
+## 1  Tech stack
+* **React 19** + **Vite 6** – ultra-fast dev server & build pipeline
+* **Ethers.js 6** – blockchain RPC and contract ABIs
+* **React-Bootstrap 5** – responsive UI components
+* **Context API + custom hooks** – application state management
 
-This frontend application interfaces with the Mosaical DeFi smart contracts, providing a user-friendly interface for:
-
-1. Depositing GameFi NFTs as collateral
-2. Borrowing native tokens against NFTs
-3. Repaying loans
-4. Managing vault assets
-5. Administrative functions
-
-## Architecture
-
-The application is built with the following technologies:
-
-- **React**: Frontend library for building user interfaces
-- **Ethers.js**: Ethereum library for blockchain interactions
-- **React Bootstrap**: UI component library
-- **Vite**: Build tool and development server
-
-## Key Components
-
-### Core Functionality
-
-- **Web3Context**: Manages wallet connection and blockchain state
-- **NotificationContext**: Centralized notification system for users
-- **ContractService**: Handles all interactions with smart contracts
-- **AlchemyService**: Fetches NFT metadata from Alchemy API
-
-### User Interface
-
-- **NFT Management**:
-  - `MyNFTs`: Displays user-owned NFTs available for deposit
-  - `VaultAssets`: Shows NFTs deposited as collateral
-  - `NFTCard`: Reusable component for displaying NFT details
-  
-- **Lending Operations**:
-  - Borrow functionality against deposited NFTs
-  - Loan repayment system
-  - Withdrawal of NFTs after loan repayment
-
-- **Admin Functions**:
-  - Collection management
-  - Oracle price updates
-  - System parameter configuration
-
-## Smart Contract Integration
-
-The frontend integrates with the following contracts:
-
-- **NFTVaultV3**: Core lending protocol
-- **DPOTokenV3**: Debt position tokens
-- **GameFiOracleV3**: Price oracle for NFT valuations
-- **MockGameNFT**: Test NFT collection
-
-## Testing the Application
-
-For testing instructions, see the root level `README-TESTING.md` file, which includes:
-
-1. Setting up MetaMask for DevPros network
-2. Minting test NFTs using provided scripts
-3. Step-by-step workflow for testing all features
-
-## Development
-
-```bash
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
+---
+## 2  Application map
+```mermaid
+graph TD
+    subgraph Routing
+        A[DashboardPage] -- "/" -->|Deposits overview| B[VaultAssets]
+        A --> C[MyNFTs]
+        D[LoanPage] -- "/loans" --> D
+        E[DPOTokensPage] -- "/dpo" --> E
+        F[AdminPage] -- "/admin" --> F
+    end
+    subgraph Components
+        B -->|card| G[NFTCard]
+        A -->|header| H[Header]
+        H --> I[WalletConnector]
+    end
+    class A,H,E,F,B,D,C,P,I G nodeClass;
 ```
 
-## Future Enhancements
+---
+## 3  Important directories
+| Path | Purpose |
+|------|---------|
+| `src/components/` | Reusable UI widgets (NFTCard, MyNFTs, WalletConnector…) |
+| `src/pages/` | Top-level routed pages |
+| `src/contexts/` | React Context providers (Web3 & Notification) |
+| `src/hooks/` | Business-logic hooks (`useVaultAssets`, `useContracts`, `useWeb3`) |
+| `src/services/` | Low-level helpers (`contractService`, `alchemyService`) |
+| `src/constants/` | Contract addresses & network metadata |
 
-1. Enhanced NFT metadata display with game statistics
-2. Real-time price feeds for NFT valuations
-3. Governance voting interface
-4. Analytics dashboard for protocol metrics
+---
+## 4  Data/Control flow
+```mermaid
+sequenceDiagram
+    participant UI as React Component
+    participant Hook as useVaultAssets
+    participant Service as ContractService
+    participant RPC as JSON-RPC
+    UI->>Hook: request NFT/loan data
+    Hook->>Service: call getUserPosition()
+    Service->>RPC: eth_call → NFTVaultV3
+    RPC-->>Service: data
+    Service-->>Hook: parsed result
+    Hook-->>UI: { assets, positions }
+```
+
+---
+## 5  Getting started
+```bash
+# install deps
+cd frontend
+npm install
+
+# start hot-reload dev server on http://localhost:5173
+npm run dev
+
+# lint all files
+npm run lint
+
+# production build -> dist/
+npm run build
+
+# serve built bundle (uses Vite preview)
+npm run preview -- --host --port 4173
+```
+
+Environment variables (create `.env.local`):
+```
+VITE_ALCHEMY_KEY=_____your_key_____
+```
+`src/services/alchemyService.js` reads this key – the file is ignored by Git via `.gitignore`.
+
+---
+## 6  UX guidelines
+1. **Optimistic UI** – after Metamask confirms, state updates locally while tx is mined.
+2. **Toast notifications** – success / error / pending tracked via `NotificationContext`.
+3. **Two-column grid** – `VaultAssets` uses Bootstrap `Row g-4 Col xs=12 md=6` for responsive layout.
+
+---
+## 7  Checklist
+- [x] Wallet connect / disconnect (MetaMask)
+- [x] Deposit NFT
+- [x] Borrow against NFT (Borrow modal)
+- [x] Repay full loan (Repay modal)
+- [x] Withdraw NFT (instant optimistic removal)
+- [x] DPO token balance + transfer (Trade modal w/ Max button)
+- [ ] Portfolio analytics dashboard _(pending)_
+- [ ] Governance voting interface _(future)_
+
+---
+## 8  Known limitations
+* Only one ERC-721 collection hard-coded in MVP (`MockGameNFT`).
+* Oracle price must be pushed manually by admin.
+* No automatic liquidation UI yet – admin executes from AdminPage.
+
+---
+## 9  Roadmap
+1. Integrate WalletConnect & Ledger support.
+2. Add charting dashboard with historical LTV / interest data.
+3. Real-time oracle feed via WebSockets.
+4. Multi-language i18n and accessibility pass.

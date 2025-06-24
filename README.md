@@ -1,26 +1,189 @@
-# Mosaical Contracts
+# Mosaical DeFi – Dynamic Yield-Backed NFT Financing
 
-Dự án triển khai các hợp đồng thông minh của Mosaical trên blockchain Saga.
+Mosaical is a GameFi–focused lending protocol that unlocks liquidity from in-game NFTs.  Depositors collateralise NFTs in the `NFTVaultV3` contract and borrow native chain currency (DPSV).  When a loan is opened the vault mints DPO (Debt Position Ownership) ERC-20 tokens that fractionalise the debt, making it tradable and enabling sophisticated secondary-market risk transfer.
+
+---
+## 0. Quick links
+
+* 🖥 Demo front-end ‑ `frontend/`
+* 🛠 Smart contracts ‑ `src/contracts/`
+
+---
+## 1. System architecture  _(design-first)_
+```mermaid
+flowchart TD
+  subgraph Browser
+    A[React + Vite UI] --Ethers.js--> RPC((JSON-RPC))
+  end
+
+  subgraph Chainlet
+    RPC --> NFTVault[NFTVaultV3]
+    RPC --> DPO[DPOTokenV3]
+    RPC --> Oracle[GameFiOracleV3]
+    RPC --> Gov[GovernanceToken]\nMosaicalGovernance
+  end
+
+  A --REST--> Alchemy((NFT Metadata API))
+```
+
+---
+## 2. Entity–Relationship Diagram (ERD)
+```mermaid
+erDiagram
+  NFTDeposit ||--|| NFT : "1:1"
+  NFTDeposit {
+    address owner
+    uint depositTime
+    bool  isActive
+  }
+  Loan ||--|| NFT : "1:1"
+  Loan {
+    uint amount
+    uint startTime
+    uint interestRate
+    bool isActive
+  }
+  DPO_Token_Holding ||--|{ Loan : fractionalises
+  DPO_Token_Holding {
+    address holder
+    uint balance
+  }
+```
+
+---
+## 3. Class diagram
+```mermaid
+classDiagram
+  class NFTVaultV3 {
+    +depositNFT()
+    +withdrawNFT()
+    +borrow()
+    +repayLoan()
+    +liquidate()
+    +getUserPosition()
+  }
+  class GameFiOracleV3 {
+    +updateFloorPrice()
+    +getFloorPrice()
+    +updateUtilityScore()
+  }
+  class DPOTokenV3 {
+    +mintOnLoan()
+    +tradeDPOTokens()
+    +distributeInterest()
+  }
+  NFTVaultV3 --> DPOTokenV3 : mints
+  NFTVaultV3 --> GameFiOracleV3 : queries
+```
+
+---
+## 4. Functional flow
+```mermaid
+flowchart LR
+  User --1. deposit--> Vault
+  Vault --2. verify & hold--> NFT[NFT custody]
+  User --3. borrow DPSV--> Vault
+  Vault --4. mint--> DPO
+  User --5. repay--> Vault
+  Vault --6. burn DPO & return NFT--> User
+```
+
+---
+## 5. Use-case diagrams
+### 5.1 Overall actors
+```mermaid
+actor User
+actor Admin
+actor Liquidator
+usecase UC1 as "Deposit NFT"
+usecase UC2 as "Borrow"
+usecase UC3 as "Repay"
+usecase UC4 as "Trade DPO"
+usecase UC5 as "Liquidate"
+User -- UC1
+User -- UC2
+User -- UC3
+User -- UC4
+Liquidator -- UC5
+Admin -- UC5
+```
+
+### 5.2 User-centric
+```mermaid
+... (omitted for brevity)
+```
+
+---
+## 6. Sequence – Borrow happy-path
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant UI as Front-end
+  participant V as NFTVaultV3
+  participant DPO as DPOTokenV3
+  U->>UI: click "Borrow"
+  UI->>V: borrow(collection,tokenId,amount)
+  V-->>DPO: mintOnLoan(...)
+  DPO-->>V: tx receipt
+  V-->>UI: tx receipt
+  UI-->>U: Toast success
+```
+
+---
+## 7. Functional Decomposition
+```mermaid
+graph TD
+  Lending-->Deposit
+  Lending-->Borrow
+  Lending-->Repay
+  Risk-->Oracle
+  Risk-->Liquidation
+  Tokenisation-->DPO_Mint
+  Tokenisation-->DPO_Trade
+```
+
+---
+## 8. Checklist
+| Feature | Status |
+| --- | --- |
+| Deposit / Withdraw NFT | ✅ done |
+| Borrow & Repay native DPSV | ✅ done |
+| DPO token mint on borrow | ✅ done |
+| Trade DPO tokens | ✅ done (ERC-20 transfer) |
+| Interest distribution | ⏳ pending |
+| Liquidation engine | ⏳ pending |
+| Governance voting | ❌ not yet |
+
+---
+## 9. Results
+* End-to-end happy path validated on Devpros chainlet.
+* Front-end race conditions fixed; gas exceptions resolved.
+
+---
+## 10. Limitations
+* Oracle prices manually updated.
+* Lack of on-chain order-book for DPO trading.
+* Liquidation uses direct caller, no auction.
+
+---
+## 11. Road-map / Recommendations
+1. Integrate off-chain price oracle (Chainlink, Pyth).
+2. Implement Dutch-auction liquidation.
+3. Secondary-market AMM pool for DPO tokens.
+4. Governance module for protocol parameters.
+5. Security audit.
 
 ## Các hợp đồng đã triển khai
 
-Các hợp đồng đã được triển khai thành công trên mạng Saga Devpros:
+<!-- Deployment addresses redacted for public repository -->
 
-| Hợp đồng | Địa chỉ |
-|----------|---------|
-| MockGameNFT | 0xA8fc1f266681D7CD36A1E52ED8ab748FA6ec6Cd4 |
-| GovernanceToken | 0xf5FCc34d39AE6DfD64AbB2f233661EeC537F0A5a |
-| GameFiOracleV3 | 0xC3909e244d760A2A28f1628ed0DEFBB0E8531548 |
-| NFTVaultV3 | 0x164509509cB2cE921eBD997F487A0f7746BF3545 |
-| MosaicalGovernance | 0x6243d21F1b3b8d54C842A7a12e1777A4D31000D3 |
-| DPOTokenV3 | 0x6eFF34790FF79EEc0A219397A0FA27A3282CEea0 |
+_Deployment addresses have been moved to `deployments/<env>-deployment.json` which is excluded via `.gitignore`._
 
 ## Thông tin mạng
 
-- **Mạng**: Saga Devpros
-- **Chainlet ID**: devpros_2749656616387000-1
-- **RPC URL**: https://devpros-2749656616387000-1.jsonrpc.sagarpc.io
-- **Trình khám phá khối**: https://devpros-2749656616387000-1.sagaexplorer.io
+<!-- Network details redacted -->
+
+_Internal test-net parameters (name, RPC, chain ID, explorer) are intentionally omitted from public docs._
 
 ## Cách triển khai
 
