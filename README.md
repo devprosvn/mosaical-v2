@@ -12,18 +12,21 @@ Mosaical is a GameFi–focused lending protocol that unlocks liquidity from in-g
 ## 1. System architecture  _(design-first)_
 ```mermaid
 flowchart TD
-  subgraph Browser
-    A[React + Vite UI] --Ethers.js--> RPC((JSON-RPC))
+  %%--- Client Layer ---%%
+  subgraph "Browser"
+    UI["React + Vite UI"] -- "ethers.js" --> RPC["JSON-RPC"]
   end
 
-  subgraph Chainlet
-    RPC --> NFTVault[NFTVaultV3]
+  %%--- On-chain Layer ---%%
+  subgraph "Smart-Contracts"
+    RPC --> Vault[NFTVaultV3]
     RPC --> DPO[DPOTokenV3]
     RPC --> Oracle[GameFiOracleV3]
-    RPC --> Gov[GovernanceToken]\nMosaicalGovernance
+    RPC --> GovToken[GovernanceToken]
+    RPC --> Gov[MosaicalGovernance]
   end
 
-  A --REST--> Alchemy((NFT Metadata API))
+  UI -- "REST" --> Alchemy["Alchemy NFT Metadata API"]
 ```
 
 ---
@@ -92,20 +95,26 @@ flowchart LR
 ## 5. Use-case diagrams
 ### 5.1 Overall actors
 ```mermaid
-actor User
-actor Admin
-actor Liquidator
-usecase UC1 as "Deposit NFT"
-usecase UC2 as "Borrow"
-usecase UC3 as "Repay"
-usecase UC4 as "Trade DPO"
-usecase UC5 as "Liquidate"
-User -- UC1
-User -- UC2
-User -- UC3
-User -- UC4
-Liquidator -- UC5
-Admin -- UC5
+flowchart LR
+  %% Actors %%
+  user((User))
+  admin((Admin))
+  liq((Liquidator))
+
+  %% Use-cases (ellipses) %%
+  ucDeposit(("Deposit NFT"))
+  ucBorrow((Borrow))
+  ucRepay((Repay))
+  ucTrade(("Trade DPO"))
+  ucLiquidate((Liquidate))
+
+  %% Relationships %%
+  user -- "" --> ucDeposit
+  user --> ucBorrow
+  user --> ucRepay
+  user --> ucTrade
+  liq  --> ucLiquidate
+  admin --> ucLiquidate
 ```
 
 ### 5.2 User-centric
