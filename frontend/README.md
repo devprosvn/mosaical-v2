@@ -13,19 +13,18 @@ This package delivers the **single-page application (SPA)** that interacts with 
 ## 2  Application map
 ```mermaid
 graph TD
-    subgraph Routing
-        A[DashboardPage] -- "/" -->|Deposits overview| B[VaultAssets]
-        A --> C[MyNFTs]
-        D[LoanPage] -- "/loans" --> D
-        E[DPOTokensPage] -- "/dpo" --> E
-        F[AdminPage] -- "/admin" --> F
-    end
-    subgraph Components
-        B -->|card| G[NFTCard]
-        A -->|header| H[Header]
-        H --> I[WalletConnector]
-    end
-    class A,H,E,F,B,D,C,P,I G nodeClass;
+  subgraph "Routing"
+    A[DashboardPage] -->|"/"| B[VaultAssets]
+    A --> C[MyNFTs]
+    D[LoanPage] -->|"/loans"| D
+    E[DPOTokensPage] -->|"/dpo"| E
+    F[AdminPage] -->|"/admin"| F
+  end
+  subgraph "Components"
+    B -->|"card"| G[NFTCard]
+    A -->|"header"| H[Header]
+    H --> I[WalletConnector]
+  end
 ```
 
 ---

@@ -109,7 +109,7 @@ flowchart LR
   ucLiquidate((Liquidate))
 
   %% Relationships %%
-  user -- "" --> ucDeposit
+  user --> ucDeposit
   user --> ucBorrow
   user --> ucRepay
   user --> ucTrade
@@ -119,7 +119,42 @@ flowchart LR
 
 ### 5.2 User-centric
 ```mermaid
-... (omitted for brevity)
+flowchart LR
+  %% Individual actor view – Borrower %%
+  subgraph Borrower
+    borrower((Borrower))
+    bcDeposit((Deposit NFT))
+    bcBorrow((Borrow))
+    bcRepay((Repay))
+    borrower --> bcDeposit
+    borrower --> bcBorrow
+    borrower --> bcRepay
+  end
+
+  %% Individual actor view – Lender/DPO Holder %%
+  subgraph Lender
+    lender((DPO Holder))
+    lcTrade((Trade DPO))
+    lcEarn((Claim Interest))
+    lender --> lcTrade
+    lender --> lcEarn
+  end
+
+  %% Individual actor view – Admin %%
+  subgraph Admin
+    adminActor((Admin))
+    acUpdateOracle((Update Oracle))
+    acManageParam((Manage Parameters))
+    adminActor --> acUpdateOracle
+    adminActor --> acManageParam
+  end
+
+  %% Individual actor view – Liquidator %%
+  subgraph Liquidator
+    liquidator((Liquidator))
+    lcLiquidate((Liquidate))
+    liquidator --> lcLiquidate
+  end
 ```
 
 ---
