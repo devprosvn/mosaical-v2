@@ -83,12 +83,12 @@ classDiagram
 ## 4. Functional flow
 ```mermaid
 flowchart LR
-  User --1. deposit--> Vault
-  Vault --2. verify & hold--> NFT[NFT custody]
-  User --3. borrow DPSV--> Vault
-  Vault --4. mint--> DPO
-  User --5. repay--> Vault
-  Vault --6. burn DPO & return NFT--> User
+  User -->|"1. deposit"| Vault
+  Vault -->|"2. verify & hold"| NFT[NFT custody]
+  User -->|"3. borrow DPSV"| Vault
+  Vault -->|"4. mint"| DPO
+  User -->|"5. repay"| Vault
+  Vault -->|"6. burn & return"| User
 ```
 
 ---
